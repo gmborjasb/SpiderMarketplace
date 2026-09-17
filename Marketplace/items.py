@@ -12,6 +12,7 @@ import scrapy
 @dataclass
 class MarketplaceItem:
     brand: Optional[str] = None
+    seller: Optional[str] = None
     title: Optional[str] = None
     old_price: Optional[str] = None
     regular_price: Optional[str] = None

@@ -10,6 +10,7 @@ class RipleySpider(scrapy.Spider):
         "https://simple.ripley.com.pe/tecnologia/celulares/celulares-y-smartphones"
     )
 
+    # last_page = 45
     last_page = 2
 
     async def start(self):
