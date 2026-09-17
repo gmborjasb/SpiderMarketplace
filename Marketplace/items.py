@@ -13,7 +13,7 @@ import scrapy
 class MarketplaceItem:
     brand: Optional[str] = None
     seller: Optional[str] = None
-    title: Optional[str] = None
+    product: Optional[str] = None
     old_price: Optional[str] = None
     regular_price: Optional[str] = None
     special_price: Optional[str] = None

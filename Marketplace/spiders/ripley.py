@@ -1,4 +1,5 @@
 import scrapy
+import re
 
 from Marketplace.items import MarketplaceItem
 
@@ -32,12 +33,14 @@ class RipleySpider(scrapy.Spider):
 
             marketplaceItem = MarketplaceItem()
 
+            marketplaceItem.seller = None
+
             brand = data_item.css("span.product-item--brand::text").get()
-            title = data_item.css("p.product-item--name::text").get()
+            product = data_item.css("p.product-item--name::text").get()
             prices = data_item.css("div.product-price-wrapper")
 
             marketplaceItem.brand = brand
-            marketplaceItem.title = title
+            marketplaceItem.product = product
 
             if not prices:
                 yield marketplaceItem
@@ -54,3 +57,29 @@ class RipleySpider(scrapy.Spider):
             marketplaceItem.special_price = special_price
 
             yield marketplaceItem
+
+    # Cleaning methods
+    def _clean_price(self, value):
+        if not value:
+            return None
+
+        value = re.sub(r"[S/,\s\xa0]", "", value).strip()
+
+        return value if value else None
+
+    # def _clean_seller(self, value):
+    #     if not value:
+    #         return None
+    #
+    #     value = value.upper()
+    #     value = re.sub(r"POR ", "")
+    #
+    #     return value
+
+    def _clean_product(self, value):
+        if not value:
+            return None
+
+        value = value.upper()
+
+        return value

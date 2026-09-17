@@ -60,6 +60,7 @@ DOWNLOAD_DELAY = 1
 # Configure item pipelines
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
 ITEM_PIPELINES = {
+    "Marketplace.pipelines.CleaningPipeline": 200,
     "Marketplace.pipelines.SupabasePipeline": 300,
 }
 

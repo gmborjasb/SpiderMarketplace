@@ -7,7 +7,24 @@
 # useful for handling different item types with a single interface
 import psycopg
 import os
-from itemadapter import ItemAdapter
+from Marketplace import utils
+
+
+class CleaningPipeline:
+    def process_item(self, item, spider):
+
+        if hasattr(spider, "_clean_price"):
+            item.old_price = spider._clean_price(item.old_price)
+            item.regular_price = spider._clean_price(item.regular_price)
+            item.special_price = spider._clean_price(item.special_price)
+
+        if hasattr(spider, "_clean_seller"):
+            item.seller = spider._clean_seller(item.seller)
+
+        if hasattr(spider, "_clean_product"):
+            item.product = spider._clean_product(item.product)
+
+        return item
 
 
 class SupabasePipeline:
@@ -22,11 +39,11 @@ class SupabasePipeline:
             CREATE TABLE IF not EXISTS marketplace (
                 marketplace VARCHAR(50),
                 brand VARCHAR(50),
-                seller VARCHAR(50),
-                title TEXT,
-                old_price VARCHAR(10),
-                regular_price VARCHAR(10),
-                special_price VARCHAR(10), 
+                seller VARCHAR(100),
+                product TEXT,
+                old_price DECIMAL,
+                regular_price DECIMAL,
+                special_price DECIMAL, 
                 scraped_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
             """
@@ -39,12 +56,12 @@ class SupabasePipeline:
             return item
 
         self.cursor.execute(
-            "INSERT INTO marketplace (marketplace, brand, seller, title, old_price, regular_price, special_price) VALUES (%s, %s, %s, %s, %s, %s, %s)",
+            "INSERT INTO marketplace (marketplace, brand, seller, product, old_price, regular_price, special_price) VALUES (%s, %s, %s, %s, %s, %s, %s)",
             (
                 spider.name,
                 item.brand,
                 item.seller,
-                item.title,
+                item.product,
                 item.old_price,
                 item.regular_price,
                 item.special_price,

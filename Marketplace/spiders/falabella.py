@@ -1,4 +1,5 @@
 import scrapy
+import re
 
 from Marketplace.items import MarketplaceItem
 
@@ -30,11 +31,11 @@ class FalabellaSpider(scrapy.Spider):
                 continue
 
             brand = detail.css("b.pod-title::text").get()
-            title = detail.css("b.pod-subTitle::text").get()
+            product = detail.css("b.pod-subTitle::text").get()
             seller = detail.css("b.pod-sellerText::text").get()
 
             marketplaceItem.brand = brand
-            marketplaceItem.title = title
+            marketplaceItem.product = product
             marketplaceItem.seller = seller
 
             prices = item.css("ol.pod-prices")
@@ -56,3 +57,33 @@ class FalabellaSpider(scrapy.Spider):
             marketplaceItem.special_price = special_price
 
             yield marketplaceItem
+
+    # Cleaning methods
+    def _clean_price(self, value):
+        if not value:
+            return None
+
+        value = value.replace(",", "").strip()
+
+        return value if value else None
+
+    def _clean_seller(self, value):
+        if not value:
+            return None
+
+        value = value.strip()
+
+        if value.upper().startswith("POR "):
+            value = value[4:].strip()
+
+        value = value.upper()
+
+        return value
+
+    def _clean_product(self, value):
+        if not value:
+            return None
+
+        value = value.upper()
+
+        return value
