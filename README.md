@@ -1,5 +1,11 @@
 # SpiderMarketplace
 
+## Integrantes:
+- Alondra Solange Obregon Carhuavilca
+- Axel Roberth Portal Ruiz
+- Danna Nickol Gala Vasquez
+- Gerald Marcelo Fernando Borjas Bernaola
+
 A Web Scraping project built with Python and [Scrapy](https://scrapy.org/), designed to extract detailed product and pricing data from retail e-commerce sites (Falabella).
 
 ## Prerequisites
