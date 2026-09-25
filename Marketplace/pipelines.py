@@ -13,14 +13,20 @@ load_dotenv()
 
 
 class CleaningPipeline:
+    """
+    Pipeline encargado de limpiar y castear los datos crudos extraídos por los spiders.
+
+    Verifica si el spider actual tiene métodos de limpieza específicos (como `_clean_price`)
+    y los aplica. Asegura que los precios se conviertan a tipos numéricos (float)
+    y los textos queden estandarizados antes de llegar a la base de datos.
+    """
+
     def process_item(self, item, spider):
 
         if hasattr(spider, "_clean_price"):
-            old = spider._clean_price(item.old_price)
             reg = spider._clean_price(item.regular_price)
             spe = spider._clean_price(item.special_price)
 
-            item.old_price = float(old) if old else None
             item.regular_price = float(reg) if reg else None
             item.special_price = float(spe) if spe else None
 
@@ -34,12 +40,20 @@ class CleaningPipeline:
 
 
 class SupabasePipeline:
+    """
+    Pipeline encargado de persistir los items limpios en una base de datos PostgreSQL (Supabase).
+
+    Maneja la conexión a la base de datos de forma eficiente, creando la tabla
+    necesaria al inicio y ejecutando los commits de forma masiva (bulk)
+    al finalizar el spider para maximizar el rendimiento.
+    """
+
     def open_spider(self, spider):
         db_url = os.getenv("SUPABASE_DB_URL")
 
         if not db_url:
             raise ValueError(
-                "ValueError: Environment variable SUPABASE_DB_URL is not set."
+                "ValueError: La variable de entorno SUPABASE_DB_URL no está configurada."
             )
 
         self.conn = psycopg.connect(db_url)
@@ -52,9 +66,9 @@ class SupabasePipeline:
                 brand VARCHAR(50),
                 category VARCHAR(50),
                 seller VARCHAR(100),
-                old_price DECIMAL,
                 regular_price DECIMAL,
-                special_price DECIMAL, 
+                special_price DECIMAL,
+                has_cmr_discount INTEGER,
                 scraped_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
             """
@@ -67,15 +81,15 @@ class SupabasePipeline:
             return item
 
         self.cursor.execute(
-            "INSERT INTO marketplace (product, brand, category, seller, old_price, regular_price, special_price) VALUES (%s, %s, %s, %s, %s, %s, %s)",
+            "INSERT INTO marketplace (product, brand, category, seller, regular_price, special_price, has_cmr_discount) VALUES (%s, %s, %s, %s, %s, %s, %s)",
             (
                 item.product,
                 item.brand,
                 item.category,
                 item.seller,
-                item.old_price,
                 item.regular_price,
                 item.special_price,
+                item.has_cmr_discount,
             ),
         )
 

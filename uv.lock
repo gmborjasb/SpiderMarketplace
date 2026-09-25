@@ -1187,6 +1187,7 @@ dependencies = [
     { name = "python-dotenv" },
     { name = "scrapy" },
     { name = "scrapy-rotating-proxies" },
+    { name = "twisted" },
 ]
 
 [package.metadata]
@@ -1195,6 +1196,7 @@ requires-dist = [
     { name = "python-dotenv", specifier = ">=1.2.3" },
     { name = "scrapy", specifier = ">=2.19.0" },
     { name = "scrapy-rotating-proxies", specifier = ">=0.6.2" },
+    { name = "twisted", specifier = ">=26.4.0" },
 ]
 
 [[package]]

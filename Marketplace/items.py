@@ -15,6 +15,6 @@ class MarketplaceItem:
     brand: Optional[str] = None
     category: Optional[str] = None
     seller: Optional[str] = None
-    old_price: Optional[str] = None
-    regular_price: Optional[str] = None
-    special_price: Optional[str] = None
+    regular_price: Optional[float] = None
+    special_price: Optional[float] = None
+    has_cmr_discount: Optional[int] = None
