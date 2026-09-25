@@ -20,7 +20,7 @@ USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
 # USER_AGENT = "Marketplace (+http://www.yourdomain.com)"
 
 # Obey robots.txt rules
-ROBOTSTXT_OBEY = False
+ROBOTSTXT_OBEY = True
 
 # Concurrency and throttling settings
 CONCURRENT_REQUESTS = 8
@@ -64,8 +64,8 @@ DOWNLOADER_MIDDLEWARES = {
 # Configure item pipelines
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
 ITEM_PIPELINES = {
-    # "Marketplace.pipelines.CleaningPipeline": 200,
-    # "Marketplace.pipelines.SupabasePipeline": 300,
+    "Marketplace.pipelines.CleaningPipeline": 200,
+    "Marketplace.pipelines.SupabasePipeline": 300,
 }
 
 # Enable and configure the AutoThrottle extension (disabled by default)
