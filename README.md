@@ -3,6 +3,7 @@
 Un proyecto de Web Scraping construido con Python y [Scrapy](https://scrapy.org/), diseñado para extraer datos detallados de productos y precios desde sitios retail de comercio electrónico (Falabella).
 
 ## Integrantes
+
 - Alondra Solange Obregon Carhuavilca
 - Axel Roberth Portal Ruiz
 - Danna Nickol Gala Vasquez
