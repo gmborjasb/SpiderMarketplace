@@ -50,7 +50,7 @@
 
   #image("img/utec_logo.jpg", width: 45%)
 
-  #v(1cm)
+  #v(0.2cm)
   *FACULTAD DE COMPUTACIÓN*
 
   #v(0.2cm)
@@ -76,9 +76,12 @@
 
 ]
 #v(1.5cm)
-*CURSO:*
 #align(center)[
   *ANÁLISIS COMPUTACIONAL DE DATOS*
+  #v(1cm)
+  LIMA - PERÚ
+
+  2026
 ]
 
 #pagebreak()
@@ -107,7 +110,7 @@ Para el presente proyecto, se desarrolló la siguiente distribución de responsa
       [*Integrante*], [*Responsabilidad*],
       [Alondra Obregón], [Objetivos, Dataset Preliminar, Viabilidad, Apoyo en Web Scraping],
       [Axel Portal], [Identificación, Fuente de Datos, Estrategia, Apoyo en Web Scraping],
-      [Danna Gala], [Contexto, Alcance, Diccionario de Datos],
+      [Danna Gala], [Contexto, Alcance, Diccionario de Datos, Notebook de validación de dataset],
       [Gerald], [Web Scraping de la página seleccionada],
     ),
     caption: [Distribución de responsabilidades],
@@ -136,7 +139,7 @@ Analizar los precios, descuentos y niveles de competencia entre las marcas de la
 
 - _Contrastar la competitividad tarifaria entre tipos de vendedores_:
 
-  Comparar las distribuciones de precios ofertados por Falabella y sus filiales directas frente a los vendedores externos (sellers), identificando si los terceros constituyen una opción más económica o si replican las tarifas oficiales en los mismos modelos.
+  Comparar las distribuciones de precios ofertados por _Falabella_ y sus filiales directas frente a los vendedores externos (sellers), identificando si los terceros constituyen una opción más económica o si replican las tarifas oficiales en los mismos modelos.
 
 - _Examinar el posicionamiento y la dispersión de costos por marca_:
 
@@ -154,7 +157,7 @@ Cada fila representa un producto y cada columna es un atributo respecto a dicho 
       [*Atributo*], [*Descripción*],
       [`product`], [Nombre completo del producto tal como aparece en el sitio.],
       [`brand`], [Marca del producto.],
-      [`category`], [El producto es teléfono, televisor o laptop.],
+      [`category`], [La categoría del producto es teléfono, televisor o laptop.],
       [`seller`], [Nombre del vendedor del producto.],
       [`regular_price`], [Precio regular sin descuento del producto, en soles.],
       [`special_price`], [Precio con descuento, en soles.],
@@ -185,6 +188,28 @@ Cada fila representa un producto y cada columna es un atributo respecto a dicho 
     caption: [Muestra de 3 registros del dataset preliminar],
   )
 ]
+
+Este es el dataset preliminar, tal como sale luego de realizar el scraping, por lo que, puede presentar errores de múltiples tipos (tipo de datos, ortográficos, etc) en ciertos registros que se corregirán luego al pasar por un proceso de limpieza para lograr su posterior análisis en la siguiente entrega. Del mismo modo, mediante el uso de pandas, hemos buscado garantizar que la cantidad de nulos (NA) por columna no superé el 10% y estos fueron los resultados obtenidos:
+
+#align(center)[
+  #figure(
+    table(
+      columns: 3,
+      [], [*Nulos*], [*% de nulos*],
+      [`regular_price`], [121], [7.2],
+      [`product`], [0], [0.0],
+      [`brand`], [0], [0.0],
+      [`category`], [0], [0.0],
+      [`seller`], [0], [0.0],
+      [`special_price`], [0], [0.0],
+      [`has_cmr_discount`], [0], [0.0],
+    ),
+    caption: [Resumen de porcentaje de valores nulos (NA) por columna del dataset],
+  )
+]
+
+Tras observar los resultados, encontramos que la única columna con datos nulos corresponde a `regular_price` con 7.2% de datos NA, por lo que no supera el límite de 10% establecido. Entonces, el dataset preliminar con el que contamos, cumple en su totalidad con los requisitos establecidos.
+
 
 = Alcance
 
@@ -300,6 +325,10 @@ Adicionalmente, se implementaron los siguientes mecanismos de contingencia:
 
 = Viabilidad
 
-Justificación técnica de la factibilidad del proyecto considerando tiempo, recursos y herramientas.
+El proyecto es viable en cuanto a recursos y herramientas ya que hacemos uso herramientas gratuitas y de código abierto: Python, Pandas, Scrapy, Visual Studio Code y Supabase siendo usado con su plan gratuito. Por lo tanto, no tenemos la necesidad de pagar por algún servicio extra para poder desarrollar el proyecto en su totalidad.
+
+En lo que respecta a tiempo, haber dividido las múltiples tareas relacionadas al proyecto, nos permitió avanzar en simultáneo y así, ir a la par con los tiempos. Una estrategia que fue usada para evitar el bloqueo de la IP del integrante encargado del Scraping fue utilizar proxys gratuitos, lo que llevó a que la tarea fuera un poco más tardada, pero aseguraba que pudiéramos completar el Scraping en una sola corrida del código, obteniendo al final una totalidad de 1680 registros, lo cual entra de la cantidad mínima de registros solicitados. Del mismo modo, no buscamos ser ambiciosos con la cantidad de datos a extraer ya que ello podría extender el tiempo que pueda tardar en realizarse el scraping por completo por lo que, escogimos extraer datos en una sola tanda para poder trabajar dentro de los plazos establecidos.
+
+Un punto extra que nos gustaría mencionar es la parte de viabilidad legal. Nuestro proyecto no extrae información sensible o prohibida por Falabella, sin embargo, igual hemos establecido `robots.txt = TRUE`, lo que prohíbe a nuestra spider el extraer algún dato prohibido por _Falabella_, aunque, no queramos extraer dicha información sensible, fue una medida extra para asegurar la integridad de los datos a extraer.
 
 

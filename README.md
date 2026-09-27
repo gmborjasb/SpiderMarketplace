@@ -54,10 +54,34 @@ uv run scrapy crawl falabella
 ```
  o
 ```bash
-scrapy crawl falabella -o falabella.csv
+uv run scrapy crawl falabella -o data/falabella.csv
 ```
-para exportar los datos a un archivo `.csv`.
- 
+para exportar los datos a un archivo `.csv`, `-o` para incrementar el dataset 
+
+o 
+ ```bash
+uv run scrapy crawl falabella -O data/falabella.csv
+```
+para exportar los datos a un archivo `.csv`, `-O` para iniciar un dataset nuevo
+
+## Estructura del Proyecto
+
+El proyecto se divide en cuatro partes principales: extracción (Scrapy), almacenamiento de datos, análisis de datos y documentación.
+
+```text
+SpiderMarketplace/
+│── docs/                 # Documentación del proyecto e informes (Typst, PDF)
+│
+├── Marketplace/         # Código fuente de Scrapy (spiders, pipelines, items, settings)
+│
+├── data/                # Datasets (Ej. data/falabella.csv)
+│
+├── notebooks/           # Jupyter Notebooks (.ipynb) con el Análisis de Datos(solo implementado la validacion)
+│
+├── README.md
+└── pyproject.toml
+```
+
 
 ## Arquitectura de Datos
 
