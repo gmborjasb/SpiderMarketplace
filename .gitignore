@@ -1,5 +1,4 @@
 .env
-*.csv
 *.json
 /Marketplace/spiders/__pycache__
 /Marketplace/__pycache__
