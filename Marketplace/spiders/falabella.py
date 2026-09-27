@@ -170,13 +170,20 @@ class FalabellaSpider(scrapy.Spider):
 
     # Cleaning methods
     def _clean_price(self, value):
-        """Elimina las comas separadoras de miles y convierte a float."""
+        """Extrae el primer precio válido (mínimo) y elimina las comas separadoras."""
         if not value:
             return None
 
-        value = value.replace(",", "").strip()
-
-        return value if value else None
+        # Busca todos los patrones de precio (ej. "999", "3,549", "10,999")
+        # Esto separa correctamente rangos fusionados como "3,549,3,819" -> ["3,549", "3,819"]
+        matches = re.findall(r'\d{1,3}(?:,\d{3})*(?:\.\d+)?', value)
+        
+        if matches:
+            # Tomamos el primer precio del rango (el "Desde") y le quitamos las comas
+            first_price = matches[0].replace(",", "")
+            return first_price
+            
+        return None
 
     def _clean_seller(self, value):
         """Limpia el nombre del vendedor (ej. remueve el prefijo 'Por ')."""
