@@ -66,10 +66,11 @@ para exportar los datos a un archivo `.csv`, `-O` para iniciar un dataset nuevo
 
 ## Estructura del Proyecto
 
-El proyecto se divide en tres partes: extracción (Scrapy), almacenamiento de datos y análisis.
+El proyecto se divide en cuatro partes principales: extracción (Scrapy), almacenamiento de datos, análisis de datos y documentación.
 
 ```text
 SpiderMarketplace/
+│── docs/                 # Documentación del proyecto e informes (Typst, PDF)
 │
 ├── Marketplace/         # Código fuente de Scrapy (spiders, pipelines, items, settings)
 │
