@@ -24,17 +24,22 @@ class CleaningPipeline:
     def process_item(self, item, spider):
 
         if hasattr(spider, "_clean_price"):
-            reg = spider._clean_price(item.regular_price)
-            spe = spider._clean_price(item.special_price)
+            list_price = spider._clean_price(item.list_price)
+            internet_price = spider._clean_price(item.internet_price)
+            cmr_price = spider._clean_price(item.cmr_price)
 
-            item.regular_price = float(reg) if reg else None
-            item.special_price = float(spe) if spe else None
+            item.list_price = float(list_price) if list_price else None
+            item.internet_price = float(internet_price) if internet_price else None
+            item.cmr_price = float(cmr_price) if cmr_price else None
 
         if hasattr(spider, "_clean_seller"):
             item.seller = spider._clean_seller(item.seller)
 
         if hasattr(spider, "_clean_product"):
             item.product = spider._clean_product(item.product)
+
+        if hasattr(spider, "_clean_brand"):
+            item.brand = spider._clean_brand(item.brand)
 
         return item
 
@@ -66,9 +71,9 @@ class SupabasePipeline:
                 brand VARCHAR(50),
                 category VARCHAR(50),
                 seller VARCHAR(100),
-                regular_price DECIMAL,
-                special_price DECIMAL,
-                has_cmr_discount INTEGER,
+                list_price DECIMAL,
+                internet_price DECIMAL,
+                cmr_price DECIMAL,
                 scraped_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
             """
@@ -81,15 +86,15 @@ class SupabasePipeline:
             return item
 
         self.cursor.execute(
-            "INSERT INTO marketplace (product, brand, category, seller, regular_price, special_price, has_cmr_discount) VALUES (%s, %s, %s, %s, %s, %s, %s)",
+            "INSERT INTO marketplace (product, brand, category, seller, list_price, internet_price, cmr_price) VALUES (%s, %s, %s, %s, %s, %s, %s)",
             (
                 item.product,
                 item.brand,
                 item.category,
                 item.seller,
-                item.regular_price,
-                item.special_price,
-                item.has_cmr_discount,
+                item.list_price,
+                item.internet_price,
+                item.cmr_price,
             ),
         )
 
