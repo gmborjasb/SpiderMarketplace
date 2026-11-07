@@ -117,7 +117,6 @@ def drop_non_target(df):
 def impute_list_price(df):
     # si no hay precio de lista es porque el producto no tiene descuento,
     # asi que se completa con el precio internet y se deja una marca.
-    # cmr_price vacio significa que no hay precio CMR, ese no se toca.
     out = df.copy()
     missing = out["list_price"].isna()
     out["list_price_imputed"] = missing.astype("int8")
@@ -143,7 +142,7 @@ def cast_types(df):
     for col in TEXT_COLUMNS:
         out[col] = out[col].astype(str)
     out["category"] = out["category"].astype("category")
-    for col in ("list_price", "internet_price", "cmr_price"):
+    for col in ("list_price", "internet_price"):
         out[col] = out[col].astype("float64")
     return out
 

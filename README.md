@@ -1,6 +1,6 @@
 # SpiderMarketplace
 
-Un proyecto de Web Scraping construido con Python y [Scrapy](https://scrapy.org/), diseñado para extraer datos detallados de productos y precios desde sitios retail de comercio electrónico (Falabella).
+Un proyecto de Web Scraping y Análisis Computacional de Datos construido con Python y [Scrapy](https://scrapy.org/), diseñado para extraer, limpiar y analizar datos detallados de productos tecnológicos y precios desde Falabella Perú.
 
 ## Integrantes
 
@@ -12,7 +12,7 @@ Un proyecto de Web Scraping construido con Python y [Scrapy](https://scrapy.org/
 ## Requisitos Previos
 
 - Python 3.10 o superior.
-- `uv`  
+- `uv`
 
 ## Instalación
 
@@ -27,9 +27,9 @@ Un proyecto de Web Scraping construido con Python y [Scrapy](https://scrapy.org/
    uv sync
    ```
 
-## Configuración del Entorno 
+## Configuración del Entorno
 
-Este proyecto requiere (de manera opcional) una conexión a una base de datos remota para operar. 
+Este proyecto requiere (de manera opcional) una conexión a una base de datos remota para operar.
 
 1. Crea un archivo `.env` en el directorio raíz del proyecto.
 2. Agrega tu URL de la base de datos Supabase al archivo:
@@ -42,76 +42,60 @@ Para habilitar o deshabilitar la base de datos, usa el archivo `settings.py`.
 
 ## Uso
 
-Para ejecutar los spiders, simplemente usa los comandos estándar de la CLI de Scrapy desde el directorio raíz.
+Para ejecutar el spider desde el directorio raíz:
 
-Ejecutar el spider de **Falabella**:
 ```bash
-scrapy crawl falabella
+uv run scrapy crawl falabella -O data/raw/falabella_raw.csv
 ```
- o 
-```bash
-uv run scrapy crawl falabella
-```
- o
-```bash
-uv run scrapy crawl falabella -o data/falabella.csv
-```
-para exportar los datos a un archivo `.csv`, `-o` para incrementar el dataset 
 
-o 
- ```bash
-uv run scrapy crawl falabella -O data/falabella.csv
+Para ejecutar el pipeline completo de limpieza, feature engineering y procesamiento:
+
+```bash
+uv run python pipeline/main.py
 ```
-para exportar los datos a un archivo `.csv`, `-O` para iniciar un dataset nuevo
 
 ## Estructura del Proyecto
 
-El proyecto se divide en cuatro partes principales: extracción (Scrapy), almacenamiento de datos, análisis de datos y documentación.
+El proyecto se divide en extracción (Scrapy), pipeline reproducible (limpieza y feature engineering), almacenamiento de datos por etapas, notebooks analíticos y documentación.
 
 ```text
 SpiderMarketplace/
-│── docs/                 # Documentación del proyecto e informes (Typst, PDF)
-│
-├── Marketplace/         # Código fuente de Scrapy (spiders, pipelines, items, settings)
-│
-├── data/                # Datasets (Ej. data/falabella.csv)
-│
-├── notebooks/           # Jupyter Notebooks (.ipynb) con el Análisis de Datos(solo implementado la validacion)
-│
+├── docs/                 # Documentación del proyecto, diccionarios de datos e informes (Typst, PDF, PPT)
+├── Marketplace/          # Código fuente de Scrapy (spiders, pipelines, items, settings)
+├── pipeline/             # Scripts modulares del pipeline (cleaning.py, processing_data.py, main.py)
+├── data/                 # Datasets organizados por etapa (raw/, clean/, processed/, analysis/)
+├── notebooks/            # Jupyter Notebooks (.ipynb) de validación, limpieza, feature engineering y análisis
 ├── README.md
 └── pyproject.toml
 ```
 
-
 ## Arquitectura de Datos
 
-### Diccionario de Datos
+### Diccionario de Datos (Dataset Crudo)
 
-| Columna | Tipo | Descripcion |
+| Columna | Tipo | Descripción |
 |---|---|---|
 | `product` | `str` | Nombre completo del producto tal como aparece en la tarjeta de Falabella. |
-| `brand` | `str` | Marca del producto (ej. APPLE, SAMSUNG, XIAOMI). |
-| `category` | `str` | Categoria de la URL fuente: `phones`, `laptops` o `tvs`. |
-| `seller` | `str` | Nombre del vendedor en el marketplace (ej. "FALABELLA", "MARKETCELLPERU"). Se elimina el prefijo "Por" automaticamente. |
-| `regular_price` | `float` | **Precio de lista / referencial** -- el precio mas alto, mostrado tachado en la tarjeta. Corresponde al atributo HTML `data-normal-price`. |
-| `special_price` | `float` | **Precio con descuento general** -- precio intermedio disponible para todos los compradores. Se muestra en texto gris/negro. Corresponde al atributo HTML `data-internet-price` o `data-event-price`. |
-| `has_cmr_discount`| `int` | **Indicador de Descuento CMR** -- valor booleano/entero (`1` o `0`). Indica si el producto cuenta con un precio de descuento exclusivo con tarjeta CMR / Banco Falabella. |
+| `brand` | `str` | Marca del producto en mayúsculas (ej. APPLE, SAMSUNG, XIAOMI). |
+| `category` | `str` | Categoría de la URL fuente: `phones`, `laptops` o `tvs`. |
+| `seller` | `str` | Nombre del vendedor en el marketplace (ej. "FALABELLA", "TOTTUS"). Se elimina el prefijo "Por" automáticamente. |
+| `list_price` | `float` | **Precio de lista / referencial** -- el precio sin descuento mostrado tachado en la tarjeta. Corresponde al atributo HTML `data-normal-price`. |
+| `internet_price` | `float` | **Precio de venta online** -- precio vigente con descuento general o de evento disponible para todos los compradores. Corresponde al atributo HTML `data-internet-price` o `data-event-price`. |
 
-### Jerarquia de Precios de Falabella
+### Jerarquía de Precios Extraída en Falabella
 
-Falabella muestra multiples niveles de precio en cada tarjeta de producto. Nosotros extraemos los 2 principales e indicamos si existe un tercer descuento:
+Falabella muestra niveles de precio en cada tarjeta de producto; extraemos los dos precios de alcance general que cumplen el umbral de completitud (< 10% de valores nulos):
 
 ```
 +---------------------------------------------------------+
-|  S/ 5,999   <- regular_price     (tachado, gris claro)  |
-|  S/ 5,699   <- special_price     (texto normal, negro)  |
-|  S/ 5,499   <- has_cmr_discount  (es 1 si existe)       |
+|  S/ 5,999   <- list_price        (tachado, gris claro)  |
+|  S/ 5,699   <- internet_price    (texto normal, negro)  |
 +---------------------------------------------------------+
 ```
 
-### Pipelines
-Los datos fluyen a través de dos pipelines principales antes de finalizar:
-1. **CleaningPipeline**: Limpia las cadenas de texto en bruto, elimina comas/espacios y convierte los textos a representaciones numéricas (`float`).
+### Pipelines de Extracción
+Los datos fluyen a través de dos pipelines en Scrapy antes de finalizar:
+1. **CleaningPipeline**: Limpia las cadenas de texto en bruto, estandariza a mayúsculas, elimina comas/espacios y convierte los precios a representaciones numéricas (`float`).
 2. **SupabasePipeline**: Abre una conexión a Postgres y realiza operaciones `INSERT` al finalizar la ejecución del spider.
 
 Para habilitar o deshabilitar los pipelines, usa el archivo `settings.py`.

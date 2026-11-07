@@ -17,4 +17,3 @@ class MarketplaceItem:
     seller: Optional[str] = None
     list_price: Optional[float] = None
     internet_price: Optional[float] = None
-    cmr_price: Optional[float] = None
