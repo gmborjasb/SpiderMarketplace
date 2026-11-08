@@ -120,31 +120,29 @@ class FalabellaSpider(scrapy.Spider):
             marketplace_item.product = product
             marketplace_item.seller = seller
 
-            list_price, internet_price, cmr_price = self._extract_prices(item)
+            list_price, internet_price = self._extract_prices(item)
             marketplace_item.list_price = list_price
             marketplace_item.internet_price = internet_price
-            marketplace_item.cmr_price = cmr_price
 
             yield marketplace_item
 
     def _extract_prices(self, card):
-        """Extrae el precio regular, precio especial y evalúa la presencia de CMR.
+        """Extrae el precio de lista y el precio de venta por internet.
 
-        Falabella utiliza cuatro posibles atributos de datos en los elementos ``<li>``
+        Falabella utiliza los siguientes atributos de datos en los elementos ``<li>``
         dentro de ``ol.pod-prices``:
 
         * ``data-normal-price``   -- precio de lista / referencial (tachado)
         * ``data-internet-price`` -- precio con descuento online (texto gris/negro)
         * ``data-event-price``    -- precio promocional / evento (texto gris/negro)
-        * ``data-cmr-price``      -- precio exclusivo con tarjeta CMR Falabella (texto rojo)
 
-        Devuelve valores float sin comas separadoras de miles para los precios,
-        y 1 o 0 para has_cmr_discount dependiendo si data-cmr-price está presente.
+        Devuelve una tupla ``(list_price, internet_price)`` con los textos crudos
+        extraídos de la tarjeta (o ``None`` cuando el atributo no está presente).
         """
         prices_ol = card.css("ol.pod-prices")
 
         if not prices_ol:
-            return None, None, None
+            return None, None
 
         list_price = prices_ol.css(
             "li[data-normal-price]::attr(data-normal-price)"
@@ -159,12 +157,9 @@ class FalabellaSpider(scrapy.Spider):
                 "li[data-event-price]::attr(data-event-price)"
             ).get()
 
-        cmr_price = prices_ol.css("li[data-cmr-price]::attr(data-cmr-price)").get()
-
         return (
             list_price,
             internet_price,
-            cmr_price,
         )
 
     # Cleaning methods

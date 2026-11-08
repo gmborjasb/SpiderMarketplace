@@ -26,11 +26,9 @@ class CleaningPipeline:
         if hasattr(spider, "_clean_price"):
             list_price = spider._clean_price(item.list_price)
             internet_price = spider._clean_price(item.internet_price)
-            cmr_price = spider._clean_price(item.cmr_price)
 
             item.list_price = float(list_price) if list_price else None
             item.internet_price = float(internet_price) if internet_price else None
-            item.cmr_price = float(cmr_price) if cmr_price else None
 
         if hasattr(spider, "_clean_seller"):
             item.seller = spider._clean_seller(item.seller)
@@ -73,7 +71,6 @@ class SupabasePipeline:
                 seller VARCHAR(100),
                 list_price DECIMAL,
                 internet_price DECIMAL,
-                cmr_price DECIMAL,
                 scraped_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
             """
@@ -86,7 +83,7 @@ class SupabasePipeline:
             return item
 
         self.cursor.execute(
-            "INSERT INTO marketplace (product, brand, category, seller, list_price, internet_price, cmr_price) VALUES (%s, %s, %s, %s, %s, %s, %s)",
+            "INSERT INTO marketplace (product, brand, category, seller, list_price, internet_price) VALUES (%s, %s, %s, %s, %s, %s)",
             (
                 item.product,
                 item.brand,
@@ -94,7 +91,6 @@ class SupabasePipeline:
                 item.seller,
                 item.list_price,
                 item.internet_price,
-                item.cmr_price,
             ),
         )
 
