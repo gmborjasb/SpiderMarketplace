@@ -1,0 +1,5 @@
+brand,conjunto,n,mediana_soles,pct_low,pct_mid,pct_high
+APPLE,solo nuevos,46,5069.0,0.0,0.0,100.0
+APPLE,nuevos + reacondicionados,90,3014.0,0.0,26.7,73.3
+SAMSUNG,solo nuevos,64,2199.0,23.4,26.6,50.0
+SAMSUNG,nuevos + reacondicionados,86,1724.0,24.4,36.0,39.5
