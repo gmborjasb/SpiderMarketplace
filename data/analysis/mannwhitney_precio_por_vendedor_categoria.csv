@@ -1,0 +1,4 @@
+category,n_falabella,n_marketplace,mediana_falabella,mediana_marketplace,p_value,r_rank_biserial
+laptops,39,377,3899.0,3789.0,0.778,0.027
+phones,57,304,1899.0,1152.0,0.0007,0.283
+tvs,59,108,1999.0,1614.0,0.0022,0.287
