@@ -35,7 +35,7 @@
   set text(size: 12pt, font: "New Computer Modern Sans")
 
   box[
-    #text(fill: neo-maroon)[#sym.section#counter(heading).display()]
+    #text[#sym.section#counter(heading).display()]
     #h(5pt)
     #it.body
   ]
@@ -102,7 +102,7 @@
   ),
 )
 
-
+#pagebreak()
 
 
 = Identificación
@@ -134,6 +134,8 @@ Después de obtener la data mediante web scraping, se observa que los datos no n
 - Existen productos con precios muy bajos ($< "S/." 100$); estos productos suelen ser accesorios (e.g. soportes de pared para televisores clasificados en la categoría de TV) de una misma categoría que son considerados por el marketplace.
 - Duplicación de productos debido a la carga dinámica en el marketplace.
 - Productos que no presentan `list_price`, es decir, solo tienen precio de venta en internet mas no un precio de lista tachado (4.4 % del dataset crudo, cumpliendo holgadamente el límite máximo de 10 % de valores nulos por columna).
+
+#pagebreak()
 
 = Objetivos actualizados
 
@@ -177,7 +179,7 @@ El dataset preliminar obtenido después del web scraping es el siguiente:
     caption: [Atributos del dataset preliminar],
   )
 ]
-
+#pagebreak()
 == Volumen y estructura
 
 El dataset crudo obtenido por scraping de Falabella Perú (`data/raw/falabella_raw.csv`) tiene 1,680 filas y 6 columnas (`product`, `brand`, `category`, `seller`, `list_price` e `internet_price`), donde ninguna variable supera el 10 % de valores faltantes (solo `list_price` presenta 4.4 % de vacíos).
@@ -197,7 +199,7 @@ El dataset resultante del preprocesamiento (`data/clean/falabella_cleaned.csv`) 
       [Duplicados tras normalizar texto], [1], [0], [0],
       [Accesorios y otros productos], [386 (entre filas únicas)], [0], [0],
       [`list_price` vacío], [74 (4.4 %)], [0 (imputado en 36)], [0],
-      [Columnas con valores nulos (NA)], [1 (4.4 %, $< 10\\%$)], [0 (0.0 %)], [0 (0.0 %)],
+      [Columnas con valores nulos (NA)], [1 (4.4 %, $< 10$ %)], [0 (0.0 %)], [0 (0.0 %)],
     ),
     caption: [Volumen del dataset en cada etapa del pipeline],
   )
@@ -312,7 +314,7 @@ La mediana de precio de televisores pasa de S/ 99 a S/ 1,729, mientras que en ce
 
 *Marcas:* La marca ya viene en mayúsculas desde el scraper, igualmente se normaliza. `GENERICO`, la etiqueta que usa la tienda cuando el vendedor no declara marca, tenía 238 filas en el crudo; la mayoría eran accesorios y al retirarlos quedan 11 (8 en celulares y 3 en televisores). Se conservó como categoría explícita en lugar de imputar una marca o borrar esas filas.
 
-*Valores atípicos:* Se aplicó la regla del IQR (factor 1.5) sobre `internet_price`, dentro de cada categoría y después de retirar los accesorios; antes de ese paso los cables de S/ 10 habrían deformado los cuartiles de televisores. Un precio es atípico si queda fuera de $[\text{Q1} - 1.5\cdot\text{IQR}, \text{Q3} + 1.5\cdot\text{IQR}]$; el límite superior es S/ 9,959 en laptops, S/ 5,899 en celulares y S/ 4,050 en televisores. Quedaron 53 filas marcadas (15, 20 y 18 respectivamente), todas de precio alto. Como la distribución tiene cola a la derecha, el IQR marca la gama más alta de cada categoría y no los precios bajos. Son productos reales (por ejemplo, una laptop de S/ 27,346) y no errores de captura, por lo que se conservaron marcadas y, en caso de querer o necesitar excluirlas, se filtra con `is_price_outlier == 0`.
+*Valores atípicos:* Se aplicó la regla del IQR (factor 1.5) sobre `internet_price`, dentro de cada categoría y después de retirar los accesorios; antes de ese paso los cables de S/ 10 habrían deformado los cuartiles de televisores. Un precio es atípico si queda fuera de $[Q_1 - 1.5 dot "IQR", Q_3 + 1.5 dot "IQR"]$; el límite superior es S/ 9,959 en laptops, S/ 5,899 en celulares y S/ 4,050 en televisores. Quedaron 53 filas marcadas (15, 20 y 18 respectivamente), todas de precio alto. Como la distribución tiene cola a la derecha, el IQR marca la gama más alta de cada categoría y no los precios bajos. Son productos reales (por ejemplo, una laptop de S/ 27,346) y no errores de captura, por lo que se conservaron marcadas y, en caso de querer o necesitar excluirlas, se filtra con `is_price_outlier == 0`.
 
 #align(center)[
   #figure(
@@ -355,9 +357,9 @@ La etapa de ingeniería de características se implementa en `pipeline/processin
         [*Variable creada*], [*Fórmula o regla de construcción*], [*Justificación analítica*], [*Objetivo que responde*],
         [`has_discount` \ _(Binario 0/1)_], [$1$ si `list_price` $>$ `internet_price`; $0$ si son iguales.], [Separa las publicaciones con oferta activa (96.5 %) de aquellas sin rebaja (3.5 %).], [Objetivo 1],
         [`discount_amount` \ _(Numérico, S/)_], [`list_price` $-$ `internet_price`], [Mide el ahorro nominal en soles para comparar el beneficio monetario real entre gamas.], [Objetivo 1],
-        [`discount_pct` \ _(Numérico, %)_], [$(\text{list\_price} - \text{internet\_price}) / \text{list\_price} \times 100$], [Estandariza la magnitud de la rebaja en porcentaje (0 % a 92.88 %) para comparar categorías de distinto valor.], [Objetivos 1 y 2],
-        [`prices_category` \ _(`low`, `mid`, `high`)_], [Terciles empíricos ($P_{33.3}$ y $P_{66.7}$) de `internet_price` calculados dentro de cada `category`.], [Evita mezclar escalas de precios entre categorías y permite estratificar la competencia por nivel de gama.], [Objetivos 1, 2 y 3],
-        [`seller_type` \ _(Categórico)_], [`FALABELLA_DIRECT` si `seller` $\in$ {`FALABELLA`, `TOTTUS`, `SODIMAC`}; si no, `MARKETPLACE_SELLER`.], [Agrupa las ventas directas del grupo retail (14.9 %) frente a los 183 vendedores externos (85.1 %).], [Objetivo 2],
+        [`discount_pct` \ _(Numérico, %)_], [$("list_price" - "internet_price") / "list_price"  times 100$], [Estandariza la magnitud de la rebaja en porcentaje (0 % a 92.88 %) para comparar categorías de distinto valor.], [Objetivos 1 y 2],
+        [`prices_category` \ _(`low`, `mid`, `high`)_], [Terciles empíricos ($P_(33.3)$ y $P_(66.7)$) de `internet_price` calculados dentro de cada `category`.], [Evita mezclar escalas de precios entre categorías y permite estratificar la competencia por nivel de gama.], [Objetivos 1, 2 y 3],
+        [`seller_type` \ _(Categórico)_], [`FALABELLA_DIRECT` si `seller` $in$ {`FALABELLA`, `TOTTUS`, `SODIMAC`}; si no, `MARKETPLACE_SELLER`.], [Agrupa las ventas directas del grupo retail (14.9 %) frente a los 183 vendedores externos (85.1 %).], [Objetivo 2],
         [`is_refurbished` \ _(Binario 0/1)_], [Regex en `product`: `REACONDICIONADO`, `OPEN BOX`, `REFURBISHED`, `SEMI NUEVO`.], [Aísla equipos de segunda selección (17.4 % en celulares, sobre todo iPhones) que distorsionarían el piso de precios.], [Objetivos 1 y 3],
         [`is_bundle` \ _(Binario 0/1)_], [Regex en `product`: `COMBO`, `PACK`, `KIT`, `REGALO` o `+ ACCESORIO` (excluyendo `8+256GB`, `FHD+`, `SIM+ESIM`).], [Distingue paquetes promocionales con accesorios incluidos (9.4 % del total) de los equipos individuales.], [Objetivos 1 y 3],
         [`inches` \ _(Numérico, pulg)_], [Regex de diagonal de pantalla en `tvs` (15" a 100"); $0$ = no aplica en `phones` y `laptops`.], [Alcanza 100 % de extracción en los 167 televisores para evaluar el tamaño de panel como driver de precio sin generar NAs.], [Objetivo 3],
@@ -369,18 +371,18 @@ La etapa de ingeniería de características se implementa en `pipeline/processin
 
 == Segmentación de Gamas por Terciles Intracategoría (`prices_category`)
 
-Dado que la distribución de precios difiere drásticamente entre laptops, celulares y televisores, los puntos de corte de los terciles empíricos ($P_{33.3}$ y $P_{66.7}$) se calcularon de forma independiente dentro de cada categoría limpia y se contrastaron con los rangos comerciales del mercado retail peruano:
+Dado que la distribución de precios difiere drásticamente entre laptops, celulares y televisores, los puntos de corte de los terciles empíricos ($P_(33.3)$ y $P_(66.7)$) se calcularon de forma independiente dentro de cada categoría limpia y se contrastaron con los rangos comerciales del mercado retail peruano:
 
 #align(center)[
   #figure(
-    text(size: 9.5pt)[
+    text(size: 8.5pt)[
       #table(
-        columns: (auto, center, center, center, center, 1fr),
-        align: (left, center, center, center, center, left),
-        [*Categoría*], [*Corte `low` ($\le P_{33.3}$)*], [*Corte `mid` ($P_{33.3} - P_{66.7}$)*], [*Corte `high` ($> P_{66.7}$)*], [*Registros (`low`/`mid`/`high`)*], [*Correspondencia comercial en el retail tecnológico*],
-        [`laptops`], [$\le$ S/ 3,199], [S/ 3,200 – S/ 4,699], [$>$ S/ 4,699], [155 / 136 / 142], [Entrada: ofimática Core i3/i5 y Ryzen 3/5; Media: corporativas y gamer RTX 3050/4050; Alta: gamer RTX 4060/5060+ y MacBooks.],
-        [`phones`], [$\le$ S/ 892], [S/ 893 – S/ 2,126], [$>$ S/ 2,126], [146 / 145 / 146], [Entrada: gama básica 4G; Media: gama media 5G y reacondicionados de entrada; Alta: flagships Apple, Galaxy S y Xiaomi Ultra.],
-        [`tvs`], [$\le$ S/ 1,489], [S/ 1,490 – S/ 1,999], [$>$ S/ 1,999], [57 / 55 / 55], [Entrada: LED/QLED de 32" a 50"; Media: paneles 4K UHD/QLED de 55" a 65"; Alta: OLED, MiniLED y formatos de 75" a 100".],
+        columns: (1fr, 1.1fr, 1.5fr, 1.1fr, 1.3fr, 3.6fr),
+        align: (left + horizon, center + horizon, center + horizon, center + horizon, center + horizon, left + horizon),
+        [*Categoría*], [*Corte `low`* \ ($<= P_(33.3)$)], [*Corte `mid`* \ ($P_(33.3) - P_(66.7)$)], [*Corte `high`* \ ($> P_(66.7)$)], [*Registros* \ (`low` / `mid` / `high`)], [*Correspondencia comercial en el retail tecnológico*],
+        [`laptops`], [$<=$ S/ 3,199], [S/ 3,200 – S/ 4,699], [$>$ S/ 4,699], [155 / 136 / 142], [Entrada: ofimática Core i3/i5 y Ryzen 3/5; Media: corporativas y gamer RTX 3050/4050; Alta: gamer RTX 4060/5060+ y MacBooks.],
+        [`phones`], [$<=$ S/ 892], [S/ 893 – S/ 2,126], [$>$ S/ 2,126], [146 / 145 / 146], [Entrada: gama básica 4G; Media: gama media 5G y reacondicionados de entrada; Alta: flagships Apple, Galaxy S y Xiaomi Ultra.],
+        [`tvs`], [$<=$ S/ 1,489], [S/ 1,490 – S/ 1,999], [$>$ S/ 1,999], [57 / 55 / 55], [Entrada: LED/QLED de 32" a 50"; Media: paneles 4K UHD/QLED de 55" a 65"; Alta: OLED, MiniLED y formatos de 75" a 100".],
       )
     ],
     caption: [Umbrales de terciles empíricos por categoría y validación con segmentos comerciales],
@@ -411,7 +413,7 @@ Por su parte, las expresiones regulares aplicadas sobre `product` identificaron 
 
 == Concentración de Precios y Dispersión Relativa por Categoría (Objetivo 1)
 
-El análisis exploratorio de precios y descuentos se desarrolla en el notebook `04_analisis_descuentos_categorias.ipynb`. Debido a la asimetría positiva de los precios, la dispersión dentro de cada categoría se cuantifica mediante el Rango Intercuartílico ($\text{IQR} = Q_3 - Q_1$) y el *IQR Relativo* ($\text{IQR} / \text{Mediana} \times 100$):
+El análisis exploratorio de precios y descuentos se desarrolla en el notebook `04_analisis_descuentos_categorias.ipynb`. Debido a la asimetría positiva de los precios, la dispersión dentro de cada categoría se cuantifica mediante el Rango Intercuartílico ($"IQR" = Q_3 - Q_1$) y el *IQR Relativo* ($"IQR" / "Mediana"  times 100$):
 
 #align(center)[
   #figure(
@@ -430,7 +432,7 @@ El análisis exploratorio de precios y descuentos se desarrolla en el notebook `
 ]
 
 Los resultados revelan un contraste estructural entre las tres líneas tecnológicas:
-- *Los celulares más que duplican en dispersión relativa a los televisores ($2.34\times$):* la categoría `phones` alcanza un IQR Relativo de *148.7 %* frente al *63.6 %* de `tvs` y el *76.0 %* de `laptops`.
+- *Los celulares más que duplican en dispersión relativa a los televisores ($2.34 times$):* la categoría `phones` alcanza un IQR Relativo de *148.7 %* frente al *63.6 %* de `tvs` y el *76.0 %* de `laptops`.
 - Como muestra el gráfico de violín, el catálogo de *televisores* presenta una silueta sumamente concentrada entre S/ 1,299 y S/ 2,399 debido a la estandarización de costos de los paneles LED/QLED de 43" a 65". En cambio, los *celulares* exhiben una distribución alargada y multimodal que abarca desde teléfonos básicos de S/ 80 hasta flagships de S/ 8,999.
 
 #align(center)[
@@ -474,8 +476,8 @@ Al cruzar las variables de descuento (`discount_pct` y `discount_amount`) con lo
 ]
 
 En las tres categorías, la *rebaja porcentual mediana es mayor en la gama baja (`low`)* y disminuye hacia la gama alta (`high`): en televisores baja de 37.02 % a 31.25 %, en celulares de 29.39 % a 23.58 % y en laptops de 23.33 % a 17.24 %. Esta relación inversa se confirma mediante las pruebas de correlación entre `internet_price` y `discount_pct`:
-- En *celulares (`phones`)* existe una correlación negativa estadísticamente significativa ($r = -0.274$, $\rho = -0.258$, $p < 0.0001$): a mayor precio del smartphone, menor es el porcentaje de descuento otorgado. Las marcas cuidan el valor percibido de sus equipos *flagship*, mientras que la gama de entrada y media compite con descuentos porcentuales agresivos.
-- En *televisores* ($r = -0.176$, $\rho = -0.185$, $p = 0.023$) y *laptops* ($r = -0.129$, $\rho = -0.157$, $p = 0.007$) la tendencia también es negativa aunque más moderada.
+- En *celulares (`phones`)* existe una correlación negativa estadísticamente significativa ($r = -0.274$, $rho = -0.258$, $p < 0.0001$): a mayor precio del smartphone, menor es el porcentaje de descuento otorgado. Las marcas cuidan el valor percibido de sus equipos *flagship*, mientras que la gama de entrada y media compite con descuentos porcentuales agresivos.
+- En *televisores* ($r = -0.176$, $rho = -0.185$, $p = 0.023$) y *laptops* ($r = -0.129$, $rho = -0.157$, $p = 0.007$) la tendencia también es negativa aunque más moderada.
 
 #align(center)[
   #figure(
@@ -487,8 +489,8 @@ En las tres categorías, la *rebaja porcentual mediana es mayor en la gama baja 
 == Veracidad de Descuentos, Reacondicionados y Combos Promocionales
 
 El cruce con las banderas extraídas en Feature Engineering permite explicar las anomalías del catálogo:
-1. *Descuentos inflados o artificiales ($\ge 60\\%$):* Se identificaron 16 publicaciones con descuentos declarados de 60 % o más, de las cuales 15 pertenecen a vendedores externos (`MARKETPLACE_SELLER`). El caso más extremo supera el 70 %: la laptop `LENOVO LOQ 15AHP10 RYZEN 7 RTX 5050` publicada por `IVANCE ELECTRONIC ONLINE` declara un `list_price` de *S/ 79,999* frente a un `internet_price` de *S/ 5,699* (*92.88 %* de descuento), evidente error de digitación del vendedor (S/ 79,999 en vez de S/ 7,999, con lo que el descuento real sería 28.8 %). En televisores y celulares básicos, sellers externos como `ELECTROHOGAR` y `VICTORIA ILIMITADA` fijan precios de lista muy por encima del mercado para generar un efecto de anclaje publicitario.
-2. *Efecto de equipos reacondicionados (`is_refurbished`):* De los 76 celulares reacondicionados del dataset, *69 son iPhones de Apple* (el 58.5 % de todas las publicaciones de Apple en celulares). Mientras que un iPhone nuevo tiene un precio mediano de *S/ 4,499*, un iPhone reacondicionado tiene una mediana de *S/ 1,739* ($-61.3\\%$). Aislar esta variable evita confundir equipos usados/reacondicionados por terceros con descuentos sobre equipos nuevos.
+1. *Descuentos inflados o artificiales ($>= 60$ %):* Se identificaron 16 publicaciones con descuentos declarados de 60 % o más, de las cuales 15 pertenecen a vendedores externos (`MARKETPLACE_SELLER`). El caso más extremo supera el 70 %: la laptop `LENOVO LOQ 15AHP10 RYZEN 7 RTX 5050` publicada por `IVANCE ELECTRONIC ONLINE` declara un `list_price` de *S/ 79,999* frente a un `internet_price` de *S/ 5,699* (*92.88 %* de descuento), evidente error de digitación del vendedor (S/ 79,999 en vez de S/ 7,999, con lo que el descuento real sería 28.8 %). En televisores y celulares básicos, sellers externos como `ELECTROHOGAR` y `VICTORIA ILIMITADA` fijan precios de lista muy por encima del mercado para generar un efecto de anclaje publicitario.
+2. *Efecto de equipos reacondicionados (`is_refurbished`):* De los 76 celulares reacondicionados del dataset, *69 son iPhones de Apple* (el 58.5 % de todas las publicaciones de Apple en celulares). Mientras que un iPhone nuevo tiene un precio mediano de *S/ 4,499*, un iPhone reacondicionado tiene una mediana de *S/ 1,739* ($-61.3$ %). Aislar esta variable evita confundir equipos usados/reacondicionados por terceros con descuentos sobre equipos nuevos.
 3. *Combos promocionales (`is_bundle`):* Los 97 combos identificados presentan descuentos porcentuales medianos ligeramente menores que los productos individuales (20.05 % vs. 25.01 % en celulares; 16.88 % vs. 19.30 % en laptops), dado que el incentivo comercial se traslada al accesorio incluido (`+ AUDÍFONOS`, `+ WATCH`, `+ MOCHILA` o `+ BARRA DE SONIDO`).
 
 #align(center)[
@@ -498,11 +500,236 @@ El cruce con las banderas extraídas en Feature Engineering permite explicar las
   )
 ]
 
+== Competitividad Tarifaria entre Tipos de Vendedor (Objetivo 2)
+
+El análisis del segundo objetivo se desarrolla en el notebook `05_analisis_vendedores_marcas.ipynb` y compara las publicaciones de `FALABELLA_DIRECT` (Falabella, Tottus y Sodimac) con las de `MARKETPLACE_SELLER`. Se fijaron cuatro criterios metodológicos:
+
+- *Solo equipos nuevos* (`is_refurbished == 0`, 944 publicaciones): los 93 equipos reacondicionados del catálogo pertenecen en su totalidad a vendedores externos, por lo que incluirlos haría parecer más baratos a los terceros por vender un producto distinto.
+- *Comparación dentro de cada categoría y gama* (`prices_category`): así se separa "qué productos ofrece cada tipo de vendedor" de "a qué precio los ofrece".
+- *Prueba U de Mann-Whitney* bilateral ($alpha = 0.05$), adecuada para precios asimétricos y grupos pequeños (Falabella tiene entre 10 y 28 productos por celda), con *corrección de Holm* por las 9 comparaciones simultáneas ($p_"Holm"$).
+- *Tamaño del efecto* mediante la correlación biserial de rangos $r_"rb" = 2 U_F \/ (n_F n_M) - 1$: un valor positivo indica que Falabella tiende a valores mayores.
+
+=== Composición del catálogo y concentración de vendedores
+
+#align(center)[
+  #figure(
+    text(size: 9.5pt)[
+      #table(
+        columns: 6,
+        align: (left, center, center, left, center, center),
+        [*Categoría*], [*Publicaciones*], [*Vendedores distintos*], [*Vendedor líder*], [*Top 5*], [*HHI*],
+        [`laptops`], [433], [83], [NORTICO PE (8.3 %)], [33.3 %], [362],
+        [`phones`], [437], [100], [FALABELLA (8.7 %)], [25.2 %], [247],
+        [`tvs`], [167], [41], [FALABELLA (25.1 %)], [47.9 %], [882],
+        [*Total*], [1037], [186], [FALABELLA (10.9 %)], [24.0 %], [240],
+      )
+    ],
+    caption: [Concentración de la oferta por vendedor (calculada sobre publicaciones, no sobre ventas)],
+  )
+]
+
+#align(center)[
+  #figure(
+    image("img/ana_05_composicion_vendedores.png", width: 100%),
+    caption: [Participación de cada tipo de vendedor por categoría (izquierda) y 12 vendedores con más publicaciones (derecha)],
+  )
+]
+
+El catálogo lo publican mayoritariamente terceros: el 85.1 % de las publicaciones corresponde a vendedores externos. La venta directa del grupo Falabella solo tiene un peso relevante en televisores (35.3 %), frente al 13.0 % en celulares y el 9.0 % en laptops. La oferta está muy atomizada: hay 186 vendedores, 59 de ellos con una sola publicación, y el líder (FALABELLA) apenas reúne el 10.9 % del catálogo. Los televisores son la categoría más concentrada (HHI = 882).
+
+Además, cada tipo de vendedor ofrece una mezcla de gamas distinta. Entre los equipos nuevos, Falabella concentra su oferta en la gama alta (45.6 % de sus celulares y 47.5 % de sus televisores son `high`), mientras que los terceros tienen más peso en la gama baja (41.1 % de sus celulares y 38.9 % de sus televisores son `low`).
+
+=== Precio internet dentro de cada gama
+
+#align(center)[
+  #figure(
+    text(size: 8.5pt)[
+      #table(
+        columns: 9,
+        align: (left, center, center, right, right, center, center, center, center),
+        table.header(
+          table.cell(rowspan: 2)[*Categoría*], table.cell(rowspan: 2)[*Gama*], table.cell(rowspan: 2)[*n (F / M)*],
+          table.cell(colspan: 3)[*Precio internet (mediana)*], table.cell(colspan: 3)[*Descuento declarado (mediana)*],
+          [*Falabella*], [*Marketplace*], [*$p_"Holm"$*], [*Falabella*], [*Marketplace*], [*$p_"Holm"$*],
+        ),
+        [`laptops`], [`low`], [11 / 129], [S/ 2,449], [S/ 2,599], [1.000], [37.2 %], [22.5 %], [*0.007*],
+        [`laptops`], [`mid`], [17 / 118], [S/ 3,899], [S/ 3,789], [0.964], [34.3 %], [17.1 %], [*0.004*],
+        [`laptops`], [`high`], [11 / 130], [S/ 6,599], [S/ 6,624], [1.000], [34.0 %], [16.7 %], [*0.040*],
+        [`phones`], [`low`], [10 / 125], [S/ 534], [S/ 499], [1.000], [20.9 %], [30.1 %], [0.249],
+        [`phones`], [`mid`], [21 / 81], [S/ 1,399], [S/ 1,399], [1.000], [21.1 %], [24.7 %], [0.537],
+        [`phones`], [`high`], [26 / 98], [S/ 3,849], [S/ 3,414], [0.964], [11.5 %], [25.9 %], [*0.003*],
+        [`tvs`], [`low`], [15 / 42], [S/ 1,199], [S/ 1,074], [1.000], [33.4 %], [37.2 %], [0.537],
+        [`tvs`], [`mid`], [16 / 39], [S/ 1,799], [S/ 1,729], [1.000], [30.7 %], [35.4 %], [0.537],
+        [`tvs`], [`high`], [28 / 27], [S/ 3,699], [S/ 2,999], [0.655], [25.9 %], [38.6 %], [0.113],
+      )
+    ],
+    caption: [Prueba U de Mann-Whitney entre `FALABELLA_DIRECT` (F) y `MARKETPLACE_SELLER` (M) por categoría y gama, solo equipos nuevos. En negrita, las diferencias significativas tras la corrección de Holm],
+  )
+]
+
+#align(center)[
+  #figure(
+    image("img/ana_06_precio_vendedor_por_gama.png", width: 100%),
+    caption: [Precio internet por tipo de vendedor dentro de cada gama (equipos nuevos, escala logarítmica)],
+  )
+]
+
+*Dentro de una misma categoría y gama no existen diferencias de precio significativas entre Falabella y los vendedores externos.* Ninguna de las 9 comparaciones es significativa: el p-valor sin corregir más bajo es 0.073 (televisores `high`) y todos los $p_"Holm"$ son mayores o iguales a 0.655. Los tamaños de efecto son pequeños ($|r_"rb"| <= 0.28$). La hipótesis inicial de que los terceros son más económicos en la gama baja tampoco se confirma: en celulares `low` (S/ 534 frente a S/ 499) y televisores `low` (S/ 1,199 frente a S/ 1,074) las medianas de los terceros son algo menores, pero sin significancia ($p = 0.27$ y $p = 0.53$).
+
+En cambio, si se compara la categoría completa sin estratificar por gama, Falabella aparece más caro en celulares (mediana S/ 1,899 frente a S/ 1,152; $p < 0.001$) y en televisores (S/ 1,999 frente a S/ 1,614; $p = 0.002$). Esa brecha es un *efecto de composición*: Falabella no cobra más por productos equivalentes, sino que publica proporcionalmente más productos de gama alta.
+
+=== Agresividad de las ofertas: descuento declarado
+
+#align(center)[
+  #figure(
+    image("img/ana_07_descuento_vendedor_por_gama.png", width: 100%),
+    caption: [Descuento declarado (`discount_pct`) por tipo de vendedor dentro de cada gama (equipos nuevos)],
+  )
+]
+
+A diferencia del precio, el descuento declarado sí difiere entre tipos de vendedor, aunque en sentido opuesto según la categoría:
+
+- *Laptops:* Falabella declara descuentos significativamente mayores en las tres gamas (medianas de 37.2 %, 34.3 % y 34.0 % frente a 22.5 %, 17.1 % y 16.7 %; $r_"rb"$ entre 0.49 y 0.60). Como el precio final no difiere, la diferencia proviene de un *precio de lista más alto*: en la gama `mid`, la mediana de `list_price` de Falabella es S/ 5,899 frente a S/ 4,799 de los terceros ($p_"Holm" < 0.001$).
+- *Celulares de gama alta:* ocurre lo contrario; Falabella declara un descuento mediano de 11.5 % frente a 25.9 % de los terceros ($p_"Holm" = 0.003$).
+- *Televisores:* los terceros concentran las rebajas extremas. El 24.1 % de sus televisores nuevos declara un descuento de al menos 50 %, frente al 8.5 % de Falabella. Las diferencias de mediana no son significativas tras la corrección.
+
+En conjunto, dentro de una misma gama ambos tipos de vendedor cobran prácticamente lo mismo pero declaran descuentos distintos. Por lo tanto, *el porcentaje de descuento depende del precio de lista que declara cada vendedor y no indica un menor precio final*: funciona más como una herramienta de comunicación (efecto de anclaje) que como una medida del ahorro real.
+
+*Robustez.* Las pruebas se repitieron incluyendo los reacondicionados y excluyendo los precios atípicos (`is_price_outlier == 1`). En ambos escenarios ninguna diferencia de precio resulta significativa, y el patrón de descuentos se mantiene. La única excepción es laptops `high`, que deja de ser significativa sin atípicos ($p_"Holm" = 0.092$) porque Falabella queda con solo 10 productos en esa celda.
+
+== Posicionamiento y Dispersión de Precios por Marca (Objetivo 3)
+
+Para cada categoría se analizaron las marcas con al menos 10 publicaciones de equipos nuevos, excluyendo `GENERICO` (etiqueta que la tienda asigna cuando no se declara la marca). Los reacondicionados se excluyen porque desplazan artificialmente hacia abajo el precio de algunas marcas; su efecto se analiza aparte. Las diferencias entre marcas se evaluaron con la prueba de Kruskal-Wallis.
+
+=== Ranking de marcas y presencia por gama
+
+#align(center)[
+  #figure(
+    text(size: 8.5pt)[
+      #table(
+        columns: 7,
+        align: (left, left, center, right, center, center, center),
+        [*Categoría*], [*Marca*], [*n*], [*Mediana*], [*IQR relativo*], [*% low / mid / high*], [*Desc. mediano*],
+        [`laptops`], [MSI], [12], [S/ 6,599], [5.7 %], [0 / 0 / 100], [20.0 %],
+        [`laptops`], [APPLE], [28], [S/ 5,699], [44.6 %], [7 / 29 / 64], [11.8 %],
+        [`laptops`], [ASUS], [109], [S/ 4,050], [106.2 %], [35 / 22 / 43], [25.3 %],
+        [`laptops`], [ACER], [17], [S/ 3,899], [77.2 %], [41 / 29 / 29], [20.3 %],
+        [`laptops`], [LENOVO], [147], [S/ 3,599], [47.9 %], [32 / 44 / 24], [17.8 %],
+        [`laptops`], [HP], [93], [S/ 3,399], [60.9 %], [43 / 33 / 24], [20.0 %],
+        [`phones`], [APPLE], [46], [S/ 5,069], [57.7 %], [0 / 0 / 100], [25.2 %],
+        [`phones`], [SAMSUNG], [64], [S/ 2,199], [129.4 %], [23 / 27 / 50], [27.4 %],
+        [`phones`], [OPPO], [12], [S/ 1,599], [25.0 %], [8 / 92 / 0], [36.0 %],
+        [`phones`], [XIAOMI], [79], [S/ 1,419], [131.1 %], [34 / 27 / 39], [19.9 %],
+        [`phones`], [HONOR], [59], [S/ 1,099], [91.5 %], [36 / 52 / 12], [20.1 %],
+        [`phones`], [MOTOROLA], [25], [S/ 1,049], [81.0 %], [44 / 40 / 16], [27.7 %],
+        [`phones`], [INFINIX], [12], [S/ 821], [63.0 %], [67 / 25 / 8], [15.2 %],
+        [`phones`], [ZTE], [15], [S/ 459], [59.2 %], [80 / 20 / 0], [22.9 %],
+        [`tvs`], [SAMSUNG], [48], [S/ 1,972], [93.2 %], [23 / 29 / 48], [31.0 %],
+        [`tvs`], [JVC], [13], [S/ 1,900], [105.3 %], [46 / 8 / 46], [45.9 %],
+        [`tvs`], [TCL], [25], [S/ 1,849], [37.9 %], [24 / 36 / 40], [31.7 %],
+        [`tvs`], [LG], [59], [S/ 1,659], [38.6 %], [37 / 41 / 22], [35.4 %],
+      )
+    ],
+    caption: [Precio internet por marca (equipos nuevos), ordenado por mediana dentro de cada categoría],
+  )
+]
+
+#align(center)[
+  #figure(
+    image("img/ana_08_ranking_precio_marcas.png", width: 100%),
+    caption: [Distribución del precio internet por marca (equipos nuevos, escala logarítmica)],
+  )
+]
+
+#align(center)[
+  #figure(
+    image("img/ana_09_marcas_por_gama.png", width: 100%),
+    caption: [Porcentaje del portafolio de cada marca en cada gama (equipos nuevos)],
+  )
+]
+
+- *Celulares: la marca define el precio* (Kruskal-Wallis $H = 123.2$, $p < 0.001$). Apple mantiene un posicionamiento premium rígido: el 100 % de sus celulares nuevos está en la gama alta y su equipo nuevo más barato (S/ 2,699) cuesta más que la mediana de Samsung (S/ 2,199). Samsung y Xiaomi, en cambio, tienen portafolios elásticos que cubren las tres gamas, con la mayor dispersión relativa (129.4 % y 131.1 %). OPPO (91.7 % en `mid`) y ZTE (80.0 % en `low`) se especializan en gamas menores.
+- *Laptops:* también hay diferencias significativas entre marcas ($H = 39.2$, $p < 0.001$). MSI es la marca más rígida (100 % en `high`, IQR relativo de 5.7 %) y Apple concentra el 64.3 % de su oferta en la gama alta, con el descuento mediano más bajo de la categoría (11.8 %). Lenovo, HP, Acer y ASUS cubren las tres gamas; ASUS es la más dispersa (IQR relativo de 106.2 %).
+- *Televisores:* las marcas *no* difieren significativamente en precio ($H = 5.3$, $p = 0.15$). Samsung, TCL y LG tienen medianas cercanas y presencia en las tres gamas.
+
+*Efecto de los reacondicionados en el posicionamiento.* Si se incluyen los equipos reacondicionados, la proporción de celulares Apple en la gama alta baja de 100 % a 73.3 % y su mediana cae de S/ 5,069 a S/ 3,014. Esto significa que Apple solo aparece en la gama media a través de los 44 iPhones reacondicionados (48.9 % de sus 90 publicaciones), todos vendidos por terceros.
+
+=== El tamaño de pantalla como determinante del precio en televisores
+
+#align(center)[
+  #figure(
+    text(size: 9.5pt)[
+      #table(
+        columns: 6,
+        align: (center, center, center, right, right, center),
+        [*Tamaño*], [*n*], [*Rango intercuartílico*], [*Mediana*], [*Mediana S/ por pulgada*], [*% Falabella directo*],
+        [32"], [15], [S/ 449 – S/ 604], [S/ 585], [S/ 18.3], [6.7 %],
+        [43"], [16], [S/ 996 – S/ 1,424], [S/ 1,114], [S/ 25.9], [18.8 %],
+        [50"], [8], [S/ 1,092 – S/ 1,259], [S/ 1,224], [S/ 24.5], [50.0 %],
+        [55"], [30], [S/ 1,359 – S/ 1,900], [S/ 1,674], [S/ 30.4], [50.0 %],
+        [65"], [53], [S/ 1,559 – S/ 2,096], [S/ 1,749], [S/ 26.9], [30.2 %],
+        [75"], [19], [S/ 2,049 – S/ 2,749], [S/ 2,299], [S/ 30.7], [36.8 %],
+        [85"], [9], [S/ 2,899 – S/ 3,499], [S/ 3,299], [S/ 38.8], [66.7 %],
+      )
+    ],
+    caption: [Precio internet de los televisores según el tamaño de pantalla (tamaños con al menos 5 publicaciones; 150 de 167 televisores)],
+  )
+]
+
+#align(center)[
+  #figure(
+    image("img/ana_10_precio_pulgadas_tvs.png", width: 100%),
+    caption: [Precio internet frente al tamaño de pantalla con la mediana por tamaño (izquierda) y costo mediano por pulgada (derecha)],
+  )
+]
+
+El tamaño de pantalla (`inches`) es el principal determinante del precio de un televisor: la correlación de Spearman es $rho = 0.78$ ($p < 0.001$) y las diferencias entre tamaños son muy significativas (Kruskal-Wallis $H = 89.6$, $p < 0.001$). La mediana sube de S/ 585 en 32" a S/ 3,299 en 85". Sin embargo, el precio no crece de forma proporcional: el costo por pulgada pasa de S/ 18.3 a S/ 38.8, con una excepción en *65"*, que sale más barato por pulgada (S/ 26.9) que 55" (S/ 30.4) y cuya mediana está apenas S/ 75 por encima. Además, 65" es el tamaño con más publicaciones (53 de 167). A igual tamaño, la marca mueve el precio de forma moderada y sin un orden fijo: en 55" LG es la más barata (S/ 1,479 frente a S/ 1,849 de TCL), mientras que en 65" lo es TCL (S/ 1,599 frente a S/ 1,945 de Samsung).
+
 = Insights encontrados
 
-+ *Concentración vs. dispersión relativa entre categorías:* Los celulares presentan una dispersión relativa ($\text{IQR}/\text{Mediana} = 148.7\\%$) que más que duplica la de los televisores ($63.6\\%$), reflejando la estandarización de paneles en TVs frente a la fuerte polarización entre gama básica y flagships en smartphones.
-+ *Rigidez porcentual en gama alta vs. agresividad en gama de entrada:* En las tres categorías el porcentaje mediano de descuento cae conforme sube la gama (`low` $>$ `mid` $>$ `high`), destacando la correlación negativa en celulares ($r = -0.27$, $p < 0.0001$). Sin embargo, para el comprador de gama alta el ahorro nominal mediano sigue siendo elevado (S/ 1,700 en TVs y S/ 1,388.50 en laptops).
-+ *Anclaje publicitario y reacondicionados en el Marketplace:* Los descuentos superiores al 60 % (y el caso extremo de 92.88 % por error de digitación en `list_price` = S/ 79,999) provienen casi exclusivamente de sellers externos, mientras que el 58.5 % de la oferta de iPhones en la plataforma corresponde a equipos reacondicionados con un precio mediano 61.3 % inferior al de las unidades nuevas.
+Cada hallazgo se acompaña de la evidencia que lo respalda y de una recomendación para un usuario concreto: el *comprador*, la *plataforma* (Falabella como operador del marketplace) o el *vendedor externo*.
+
++ *El porcentaje de descuento cae al subir de gama, pero el ahorro en soles crece.* En las tres categorías la rebaja porcentual mediana disminuye de `low` a `high` (en televisores, de 37.0 % a 31.3 %; en laptops, de 23.3 % a 17.2 %), y en celulares el precio y el descuento porcentual tienen una correlación negativa ($r = -0.27$, $p < 0.001$). Aun así, el ahorro nominal mediano es mayor en gama alta (S/ 1,700 en televisores y S/ 1,388.50 en laptops).
+
+  _Recomendación para el comprador:_ en gama alta conviene evaluar el ahorro en soles y no el porcentaje, porque un descuento porcentual "bajo" puede representar un ahorro mayor que una rebaja llamativa en un equipo de entrada.
+
++ *Para equipos nuevos, comprar a un vendedor externo no es más barato que comprar a Falabella.* Dentro de la misma categoría y gama, ninguna de las 9 comparaciones de precio muestra diferencias significativas ($p_"Holm" >= 0.655$). La aparente ventaja de los terceros al comparar categorías completas se explica porque Falabella publica más productos de gama alta.
+
+  _Recomendación para el comprador:_ como el precio es equivalente, la decisión entre un producto de Falabella y uno de un tercero debería basarse en la garantía, el despacho y la reputación del vendedor. _Para el vendedor externo:_ competir solo por precio no lo diferencia de la venta directa; sus ventajas deben estar en el servicio o en el surtido.
+
++ *El porcentaje de descuento no es una señal confiable de un mejor precio.* Con precios finales equivalentes, cada tipo de vendedor declara descuentos distintos según el precio de lista que publica: Falabella declara más descuento en laptops (alrededor de 35 % frente a 17–22 %), mientras que los terceros lo hacen en celulares de gama alta y concentran las rebajas de 50 % o más en televisores (24.1 % de sus televisores frente a 8.5 % de Falabella). De las 16 publicaciones con descuentos de 60 % o más, 15 son de terceros, incluido un error de digitación de S/ 79,999 en el precio de lista de una laptop.
+
+  _Recomendación para el comprador:_ comparar el precio final (`internet_price`) entre publicaciones y no el porcentaje de rebaja. _Para la plataforma:_ validar automáticamente los precios de lista de los vendedores externos, por ejemplo alertando cuando el descuento declarado supera el 60 % o el precio de lista se aleja mucho del de productos de la misma gama.
+
++ *La oferta "barata" del marketplace en celulares proviene de los reacondicionados.* Los 93 equipos reacondicionados del catálogo son de vendedores externos. En Apple, 44 de sus 90 publicaciones de celulares (48.9 %) son reacondicionadas, con una mediana de S/ 1,999 frente a S/ 5,069 de los iPhones nuevos. Si no se separan, Apple aparenta tener presencia en la gama media.
+
+  _Recomendación para el comprador:_ verificar la condición del equipo antes de comparar precios. _Para la plataforma:_ ofrecer un filtro visible de condición (nuevo o reacondicionado) para que los equipos reacondicionados no se comparen directamente con los nuevos.
+
++ *En celulares la marca define el rango de precio; Apple es rígida y Samsung y Xiaomi son elásticas.* Apple concentra el 100 % de sus celulares nuevos en la gama alta, con un piso de S/ 2,699. Samsung y Xiaomi cubren las tres gamas, con una dispersión relativa superior al 129 %.
+
+  _Recomendación para el comprador con presupuesto acotado:_ Samsung y Xiaomi ofrecen alternativas en todos los rangos de precio. _Para el vendedor externo:_ en celulares, el surtido de marcas elásticas permite atender a más segmentos que un catálogo concentrado en una sola marca premium.
+
++ *En televisores importa más el tamaño que la marca, y 65" es el formato con mejor costo por pulgada.* El precio se asocia fuertemente con el tamaño ($rho = 0.78$), mientras que las marcas no difieren significativamente ($p = 0.15$). El televisor de 65" cuesta en mediana S/ 26.9 por pulgada, menos que uno de 55" (S/ 30.4), y su mediana está apenas S/ 75 por encima.
+
+  _Recomendación para el comprador:_ quien evalúa un televisor de 55" puede considerar uno de 65" por una diferencia de precio pequeña, y a igual tamaño conviene comparar marcas, ya que en 55" la diferencia entre LG y TCL llega a S/ 370 en mediana.
+
+= Conclusiones
+
+El proyecto permitió transformar 1,680 registros extraídos por web scraping en un dataset de 1,037 equipos verificados y 16 variables sin valores nulos, sobre el que se respondieron los tres objetivos específicos:
+
+- *Objetivo 1 (magnitud, distribución y veracidad de los descuentos).* El descuento es prácticamente universal en el catálogo: el 96.5 % de las publicaciones declara una rebaja. Los televisores tienen los descuentos más agresivos (mediana de 34.8 %, frente a 24.9 % en celulares y 18.8 % en laptops). Los celulares son la categoría más heterogénea en precio (IQR relativo de 148.7 %, 2.34 veces el de los televisores). En las tres categorías, la gama alta mantiene descuentos porcentuales más bajos. En cuanto a la veracidad, la evidencia interna (precios de lista que difieren entre vendedores con el mismo precio final, descuentos extremos casi exclusivos de terceros y un error de digitación de S/ 79,999) indica que el porcentaje de descuento refleja en buena parte el precio de lista declarado y no necesariamente un ahorro real.
+- *Objetivo 2 (competitividad entre tipos de vendedor).* Los vendedores externos *no representan una alternativa más económica* para equipos nuevos: dentro de la misma categoría y gama los precios no difieren significativamente, resultado que se mantiene en los tres escenarios de robustez. Lo que sí difiere es la estrategia de comunicación del descuento y la composición de la oferta: Falabella se concentra en gama alta, y los terceros en gama baja y en equipos reacondicionados, que son su única fuente real de precios más bajos.
+- *Objetivo 3 (posicionamiento y dispersión por marca).* En celulares y laptops la marca es un determinante significativo del precio. Hay marcas de posicionamiento rígido en la gama alta (Apple en celulares, MSI en laptops) y marcas con portafolios elásticos en las tres gamas (Samsung y Xiaomi en celulares; Lenovo, HP, Acer y ASUS en laptops). En televisores, en cambio, la marca no explica el precio y el tamaño de pantalla sí, con una relación creciente pero no proporcional.
+
+*Reflexión crítica y limitaciones.* Los resultados deben leerse dentro de las condiciones del dataset:
+
+- Los datos provienen de *una sola captura en el tiempo y de una sola tienda*. Por ello no se puede comprobar si los precios de lista se cobraron alguna vez (la verificación más directa de la veracidad de un descuento) ni comparar con otros retailers. El contraste con fuentes externas planteado en el Objetivo 1 queda como trabajo futuro.
+- La muestra corresponde a las primeras páginas del listado de cada categoría, *no es aleatoria*, y se analizan publicaciones, no ventas: la concentración de vendedores mide oferta, no participación de mercado.
+- La columna `cmr_price` se eliminó porque superaba el límite de 10 % de valores nulos por columna (más del 80 % de las publicaciones no tenía precio con tarjeta CMR). Por eso no se pudo evaluar el ahorro adicional con tarjeta.
+- El filtro de accesorios es por reglas y, aunque se revisó manualmente en los casos límite, no es infalible. Tras aplicarlo, los televisores quedaron en 167 registros y varias celdas de la comparación entre vendedores tienen pocos productos de Falabella (10 a 28), lo que reduce la potencia de las pruebas: no detectar diferencias no equivale a demostrar que los precios son idénticos.
+- Las gamas son terciles relativos a la muestra y no segmentos oficiales del mercado. Además, con las columnas disponibles no se pueden emparejar modelos idénticos entre vendedores, por lo que la comparación se hizo por categoría y gama.
+
+Como trabajo futuro, programar capturas periódicas con el workflow del scraper permitiría seguir la evolución de los precios de lista y verificar directamente la veracidad de los descuentos. Por su parte, extraer especificaciones del nombre del producto (almacenamiento, RAM, procesador) haría posible comparar modelos equivalentes entre vendedores.
 
 = Documentación y Reproducibilidad en Github
 
