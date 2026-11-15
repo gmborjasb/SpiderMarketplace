@@ -1,0 +1,4 @@
+etapa,registros,columnas,nulos_totales
+Crudo (raw),1680,6,74
+Limpio (cleaned),1037,8,0
+Procesado (processed),1037,16,0

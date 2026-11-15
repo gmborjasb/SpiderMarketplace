@@ -1,0 +1,10 @@
+category,prices_category,n_falabella,n_marketplace,mediana_falabella,mediana_marketplace,dif_medianas_F_menos_M,U,p_value,r_rank_biserial,p_holm,significativo_p005,significativo_holm
+laptops,low,11,129,3899.0,3463.0,436.0,991.0,0.0293,0.397,0.2346,True,False
+laptops,mid,17,118,5899.0,4799.0,1100.0,1618.5,0.0,0.614,0.0004,True,True
+laptops,high,11,130,11199.0,8499.0,2700.0,944.5,0.078,0.321,0.5462,False,False
+phones,low,10,125,799.0,699.0,100.0,645.5,0.8663,0.033,1.0,False,False
+phones,mid,21,81,1799.0,1899.0,-100.0,722.5,0.2906,-0.15,1.0,False,False
+phones,high,26,98,4999.0,5099.5,-100.5,1197.5,0.6404,-0.06,1.0,False,False
+tvs,low,15,42,1799.0,1549.0,250.0,312.5,0.971,-0.008,1.0,False,False
+tvs,mid,16,39,2299.0,2599.0,-300.0,231.0,0.1346,-0.26,0.8076,False,False
+tvs,high,28,27,5149.0,4999.0,150.0,409.0,0.6071,0.082,1.0,False,False
