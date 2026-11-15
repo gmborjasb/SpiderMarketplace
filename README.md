@@ -26,6 +26,10 @@ Un proyecto de Web Scraping y Análisis Computacional de Datos construido con Py
    ```bash
    uv sync
    ```
+   Alternativamente, sin `uv`:
+   ```bash
+   pip install -r Requirements.txt
+   ```
 
 ## Configuración del Entorno
 
