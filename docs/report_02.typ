@@ -1,7 +1,7 @@
 #import "@preview/merman:0.5.0": mermaid
 
 #set par(justify: true)
-#set text(size: 12pt, lang: "es", font: "New Computer Modern")
+#set text(size: 10pt, lang: "es", font: "New Computer Modern")
 #set heading(numbering: "1.")
 #show link: underline
 
@@ -9,10 +9,10 @@
 
 #show heading.where(level: 1): it => {
   if it.numbering == none {
-    set text(size: 18pt, font: "New Computer Modern Sans", weight: "bold", fill: black)
+    set text(size: 18pt, font: "New Computer Modern", weight: "bold", fill: black)
     it.body
   } else {
-    set text(size: 18pt, font: "New Computer Modern Sans")
+    set text(size: 18pt, font: "New Computer Modern")
     box[
       #text[#sym.section #counter(heading).display()]
       #h(5pt)
@@ -22,7 +22,7 @@
 }
 
 #show heading.where(level: 2): it => {
-  set text(size: 14pt, font: "New Computer Modern Sans")
+  set text(size: 14pt, font: "New Computer Modern")
 
   box[
     #text[#sym.section#counter(heading).display()]
@@ -32,7 +32,7 @@
 }
 
 #show heading.where(level: 3): it => {
-  set text(size: 12pt, font: "New Computer Modern Sans")
+  set text(size: 12pt, font: "New Computer Modern")
 
   box[
     #text[#sym.section#counter(heading).display()]
@@ -40,6 +40,73 @@
     #it.body
   ]
 }
+
+// Helpers para leer CSVs del pipeline sin tipeo manual
+#let csv-records(path) = {
+  let raw = csv(path)
+  let headers = raw.first()
+  raw
+    .slice(1)
+    .map(row => {
+      let d = (:)
+      for (i, h) in headers.enumerate() {
+        d.insert(h, row.at(i))
+      }
+      d
+    })
+}
+
+#let fmt-int(val) = {
+  let n = calc.round(float(val))
+  let neg = n < 0
+  let s = str(int(calc.abs(n)))
+  let out = ""
+  let len = s.len()
+  for (i, ch) in s.clusters().enumerate() {
+    if i > 0 and calc.rem(len - i, 3) == 0 { out += "," }
+    out += ch
+  }
+  if neg { "-" + out } else { out }
+}
+
+#let fmt-dec(val, digits: 2) = {
+  let factor = calc.pow(10, digits)
+  let r = calc.round(float(val) * factor) / factor
+  let neg = r < 0
+  let abs-r = calc.abs(r)
+  let int-part = int(calc.floor(abs-r + 1e-9))
+  let frac-int = int(calc.round((abs-r - int-part) * factor))
+  if frac-int >= factor {
+    int-part += 1
+    frac-int -= int(factor)
+  }
+  let int-str = fmt-int(int-part)
+  let frac-str = str(frac-int)
+  while frac-str.len() < digits { frac-str = "0" + frac-str }
+  let res = if digits > 0 { int-str + "." + frac-str } else { int-str }
+  if neg and (int-part > 0 or frac-int > 0) { "-" + res } else { res }
+}
+
+#let cat-median(rows, cat, col) = {
+  let vals = rows.filter(r => r.category == cat).map(r => float(r.at(col))).sorted()
+  let n = vals.len()
+  if n == 0 { 0.0 } else if calc.rem(n, 2) == 1 { vals.at(int(calc.floor(n / 2))) } else {
+    (vals.at(int(n / 2) - 1) + vals.at(int(n / 2))) / 2.0
+  }
+}
+
+#let vol-rows = csv-records("/data/pipeline/data/resumen_volumen_etapas.csv")
+#let log-rows = csv-records("/data/pipeline/data/cleaning_log.csv")
+#let proc-rows = csv-records("/data/pipeline/data/falabella_processed.csv")
+#let umb-rows = csv-records("/data/pipeline/data/umbrales_gamas_terciles.csv")
+#let disp-rows = csv-records("/data/pipeline/data/dispersion_precios_por_categoria.csv")
+#let gamas-rows = csv-records("/data/pipeline/data/descuentos_por_categoria_y_gama.csv")
+#let conc-rows = csv-records("/data/pipeline/data/vendedores_concentracion_por_categoria.csv")
+#let mw-p-rows = csv-records("/data/pipeline/data/mannwhitney_precio_por_vendedor_gama.csv")
+#let mw-d-rows = csv-records("/data/pipeline/data/mannwhitney_descuento_por_vendedor_gama.csv")
+#let m-rank-rows = csv-records("/data/pipeline/data/marcas_ranking_por_categoria.csv")
+#let m-gama-rows = csv-records("/data/pipeline/data/marcas_distribucion_por_gama.csv")
+#let tvs-rows = csv-records("/data/pipeline/data/tvs_precio_por_pulgadas.csv")
 
 #show selector(<nonumber>): it => {
   pagebreak(weak: true)
@@ -186,20 +253,40 @@ El dataset crudo obtenido por scraping de Falabella Perú (`data/raw/falabella_r
 
 El dataset resultante del preprocesamiento (`data/clean/falabella_cleaned.csv`) tiene 1,037 registros y 8 variables, y tras la etapa de ingeniería de características (`data/processed/falabella_processed.csv`) alcanza 1,037 registros y 16 variables con *0 % de valores nulos en todas sus columnas*. Conserva el 61.7 % de las 1,680 filas del CSV crudo y se reparte en 437 celulares, 433 laptops y 167 televisores.
 
+#let v-raw = vol-rows.at(0)
+#let v-clean = vol-rows.at(1)
+#let v-proc = vol-rows.at(2)
+#let n-raw = float(v-raw.registros)
+#let dup-exact = int(log-rows.at(0).filas_afectadas)
+#let dup-norm = int(log-rows.at(1).filas_afectadas)
+#let acc-rem = int(log-rows.at(2).filas_afectadas)
+#let lp-imp = int(log-rows.at(3).filas_afectadas)
+#let na-raw = int(v-raw.nulos_totales)
+#let n-cel = proc-rows.filter(r => r.category == "phones").len()
+#let n-lap = proc-rows.filter(r => r.category == "laptops").len()
+#let n-tv = proc-rows.filter(r => r.category == "tvs").len()
+
 #align(center)[
   #figure(
     table(
       columns: 4,
       align: (left, center, center, center),
       [*Indicador*], [*Antes (CSV crudo)*], [*Limpio (`cleaned`)*], [*Final (`processed`)*],
-      [Registros], [1,680], [1,037], [1,037],
-      [Variables], [6], [8], [16],
-      [Celulares / laptops / televisores], [560 / 560 / 560], [437 / 433 / 167], [437 / 433 / 167],
-      [Filas duplicadas exactas], [256 (15.2 %)], [0], [0],
-      [Duplicados tras normalizar texto], [1], [0], [0],
-      [Accesorios y otros productos], [386 (entre filas únicas)], [0], [0],
-      [`list_price` vacío], [74 (4.4 %)], [0 (imputado en 36)], [0],
-      [Columnas con valores nulos (NA)], [1 (4.4 %, $< 10$ %)], [0 (0.0 %)], [0 (0.0 %)],
+      [Registros], [#fmt-int(v-raw.registros)], [#fmt-int(v-clean.registros)], [#fmt-int(v-proc.registros)],
+      [Variables], [#v-raw.columnas], [#v-clean.columnas], [#v-proc.columnas],
+      [Celulares / laptops / televisores], [560 / 560 / 560], [#n-cel / #n-lap / #n-tv], [#n-cel / #n-lap / #n-tv],
+      [Filas duplicadas exactas], [#fmt-int(dup-exact) (#fmt-dec(dup-exact / n-raw * 100, digits: 1) %)], [0], [0],
+      [Duplicados tras normalizar texto], [#fmt-int(dup-norm)], [0], [0],
+      [Accesorios y otros productos], [#fmt-int(acc-rem) (entre filas únicas)], [0], [0],
+      [`list_price` vacío],
+      [#fmt-int(na-raw) (#fmt-dec(na-raw / n-raw * 100, digits: 1) %)],
+      [0 (imputado en #lp-imp)],
+      [0],
+
+      [Columnas con valores nulos (NA)],
+      [1 (#fmt-dec(na-raw / n-raw * 100, digits: 1) %, $< 10$ %)],
+      [0 (0.0 %)],
+      [0 (0.0 %)],
     ),
     caption: [Volumen del dataset en cada etapa del pipeline],
   )
@@ -213,21 +300,47 @@ El dataset resultante del preprocesamiento (`data/clean/falabella_cleaned.csv`) 
         align: (left, left, left),
         [*Variable*], [*Tipo*], [*Rango o valores observados (1,037 registros, 0 % NA)*],
         [`product`], [Texto], [931 nombres distintos normalizados, hasta 131 caracteres],
-        [`brand`], [Categórico], [40 marcas; más frecuentes: Lenovo (154), Samsung (134), Apple (122), Asus (109), HP (96); 11 filas `GENERICO`],
+        [`brand`],
+        [Categórico],
+        [40 marcas; más frecuentes: Lenovo (154), Samsung (134), Apple (122), Asus (109), HP (96); 11 filas `GENERICO`],
+
         [`category`], [Categórico], [`phones` (437), `laptops` (433), `tvs` (167)],
-        [`seller`], [Categórico], [186 vendedores; 59 aparecen una sola vez; Falabella, Tottus y Sodimac suman 155 filas (14.9 %)],
+        [`seller`],
+        [Categórico],
+        [186 vendedores; 59 aparecen una sola vez; Falabella, Tottus y Sodimac suman 155 filas (14.9 %)],
+
         [`list_price`], [Numérico (S/)], [S/ 159.00 a S/ 79,999.00],
         [`internet_price`], [Numérico (S/)], [S/ 79.90 a S/ 27,345.56],
-        [`list_price_imputed`], [Binario (0/1)], [0 = original (1,001), 1 = imputado con `internet_price` (36 filas, 3.5 %)],
-        [`is_price_outlier`], [Binario (0/1)], [0 = no atípico (984), 1 = atípico según IQR 1.5 por categoría (53 filas, 5.1 %)],
-        [`has_discount`], [Binario (0/1)], [1 = con descuento (1,001 filas, 96.5 %), 0 = sin descuento (36 filas, 3.5 %)],
-        [`discount_amount`], [Numérico (S/)], [S/ 0.00 a S/ 74,300.00 (mediana global: S/ 640.00)],
-        [`discount_pct`], [Numérico (%)], [0.00 % a 92.88 % (mediana global: 23.08 %)],
+        [`list_price_imputed`],
+        [Binario (0/1)],
+        [0 = original (1,001), 1 = imputado con `internet_price` (36 filas, 3.5 %)],
+
+        [`is_price_outlier`],
+        [Binario (0/1)],
+        [0 = no atípico (984), 1 = atípico según IQR 1.5 por categoría (53 filas, 5.1 %)],
+
+        [`has_discount`],
+        [Binario (0/1)],
+        [1 = con descuento (1,001 filas, 96.5 %), 0 = sin descuento (36 filas, 3.5 %)],
+
+        [`discount_amount`], [Numérico (S/)], [S/ 0.00 a S/ 74,300.00 (mediana global: S/ 696.00)],
+        [`discount_pct`], [Numérico (%)], [0.00 % a 92.88 % (mediana global: 24.13 %)],
         [`prices_category`], [Categórico], [Gama por terciles intracategoría: `low` (358), `mid` (336), `high` (343)],
-        [`seller_type`], [Categórico], [`FALABELLA_DIRECT` (155 filas, 14.9 %), `MARKETPLACE_SELLER` (882 filas, 85.1 %)],
-        [`is_refurbished`], [Binario (0/1)], [1 = reacondicionado / open box (93 filas, 9.0 %), 0 = nuevo (944 filas, 91.0 %)],
-        [`is_bundle`], [Binario (0/1)], [1 = combo / pack con accesorio (97 filas, 9.4 %), 0 = individual (940 filas, 90.6 %)],
-        [`inches`], [Numérico (pulg)], [En `tvs`: 15" a 100" (100 % extraído, mediana 65"); en `phones`/`laptops`: 0 = no aplica],
+        [`seller_type`],
+        [Categórico],
+        [`FALABELLA_DIRECT` (155 filas, 14.9 %), `MARKETPLACE_SELLER` (882 filas, 85.1 %)],
+
+        [`is_refurbished`],
+        [Binario (0/1)],
+        [1 = reacondicionado / open box (93 filas, 9.0 %), 0 = nuevo (944 filas, 91.0 %)],
+
+        [`is_bundle`],
+        [Binario (0/1)],
+        [1 = combo / pack con accesorio (97 filas, 9.4 %), 0 = individual (940 filas, 90.6 %)],
+
+        [`inches`],
+        [Numérico (pulg)],
+        [En `tvs`: 15" a 100" (100 % extraído, mediana 65"); en `phones`/`laptops`: 0 = no aplica],
       )
     ],
     caption: [Variables del dataset final (`falabella_processed.csv`)],
@@ -244,31 +357,44 @@ El diccionario de datos final, con la descripción, el tipo, el rango, la unidad
 + La muestra no es aleatoria. El scraper recorrió las primeras 20 páginas del listado de cada categoría en el orden que define la tienda.
 + Hay pocos televisores. Tras retirar accesorios quedan 167, por lo que segmentar finamente por marca o gama dentro de televisores dará celdas pequeñas.
 + El filtro de accesorios está basado en reglas. Se validó a mano sobre las filas de borde, pero no es infalible; las 386 filas retiradas se conservan aparte con su motivo.
-+ Publicaciones con mismo producto y vendedor. 10 grupos (22 filas) con precio distinto se conservaron ya que pueden ser variantes o errores de captura y el CSV no permite distinguirlos.
++ Publicaciones con mismo producto y vendedor: 10 grupos (21 filas) con precio distinto se conservaron ya que pueden ser variantes o errores de captura y el CSV no permite distinguirlos.
 + `list_price` imputado en 36 filas con el supuesto de que "sin precio tachado" significa "sin descuento", tomado del código del spider y no de una verificación en la tienda.
 + Errores de digitación en el precio de lista. Una laptop tiene `list_price` de S/ 79,999 contra un precio internet de S/ 5,699; esto no se corrige en limpieza y se audita en el análisis de descuentos.
 + `GENERICO` y vendedores. 11 filas quedan como `GENERICO` (o sea, sin marca declarada) y se conservaron sin imputar la marca; tampoco se verificó si razones sociales distintas pertenecen al mismo dueño.
 
 = Propuesta de Pipeline
 
-El pipeline es la conclusión de todas las etapas del proyecto, por lo tanto consta de la ejecución de cada una de dichas partes.
+El pipeline integra de extremo a extremo todas las etapas del proyecto bajo la orquestación de `pipeline/main.py` (con soporte de `--scrape`, `--no-pdf` y `--output-dir`).
 
-El pipeline propuesto está dividido en 5 partes:
+El flujo modular está dividido en 5 etapas:
 
-/ Scraper:
-  Se ejecuta el scraper `falabella`, el cual obtiene la data cruda `falabella_raw.csv`, almacenada en la carpeta `data/raw/`.
+/ Scraper (`pipeline/scraper.py`):
+  Ejecución opcional (`--scrape`) del spider `falabella`, que captura el catálogo y guarda `data/raw/falabella_raw.csv` (el almacenamiento en Supabase permanece desactivado en `Marketplace/settings.py`). Si se omite `--scrape`, el pipeline reutiliza el CSV crudo existente.
 
-/ Almacenamiento:
-  El scraper `scrapy` guarda los datos en una base de datos PostgreSQL mediante la plataforma Supabase.
+/ Limpieza (`pipeline/cleaning.py`):
+  Normaliza texto, elimina duplicados exactos y tras normalización, filtra accesorios e imputa `list_price` faltante sin descartar atípicos, generando `falabella_cleaned.csv`, `falabella_removed_rows.csv` y `cleaning_log.csv`.
 
-/ Limpieza:
-  Se ejecutan las funciones de limpieza (`pipeline/cleaning.py`), y la data `falabella_cleaned.csv` es almacenada en la carpeta `data/clean/`.
+/ Ingeniería de características (`pipeline/processing_data.py`):
+  Construye las 8 variables derivadas (descuento, terciles intracategoría en `prices_category`, clasificación `seller_type`, banderas de reacondicionado/combo y pulgadas), generando `falabella_processed.csv` y `umbrales_gamas_terciles.csv`.
 
-/ Preprocesamiento e ingeniería de características:
-  Se ejecutan las funciones de ingeniería de características (`pipeline/processing_data.py`), y la data `falabella_processed.csv` es almacenada en `data/processed/`.
+/ Análisis estadístico y visual (`pipeline/analysis.py`):
+  Calcula las métricas de dispersión, índices HHI, pruebas no paramétricas (Mann-Whitney U con corrección Holm-Bonferroni y Kruskal-Wallis) y exporta los 28 CSVs y 15 gráficos en `data/pipeline/data/` y `data/pipeline/img/`.
 
-/ Creación de reporte:
-  El informe y las tablas de resultados se generan mediante la data final `falabella_processed.csv`.
+/ Creación de reporte (`pipeline/report.py`):
+  Compila automáticamente el informe analítico (`reporte_analitico.typ` y `reporte_analitico.pdf`) a partir de los resultados del pipeline (opcionalmente omitible con `--no-pdf`).
+
+#align(center)[
+  #figure(
+    mermaid(```mermaid
+    flowchart LR
+      A["1. Scraper\n(pipeline/scraper.py)\n--scrape opcional"] --> B["2. Limpieza\n(pipeline/cleaning.py)\nfalabella_cleaned.csv"]
+      B --> C["3. Feature Engineering\n(pipeline/processing_data.py)\nfalabella_processed.csv"]
+      C --> D["4. Análisis\n(pipeline/analysis.py)\n28 CSVs + 15 PNGs"]
+      D --> E["5. Reporte\n(pipeline/report.py)\nreporte_analitico.pdf"]
+    ```),
+    caption: [Arquitectura modular del pipeline ejecutado mediante `pipeline/main.py`],
+  )
+]
 
 = Preprocesamiento de Datos
 
@@ -283,12 +409,35 @@ En cuanto a valores faltantes, únicamente `list_price` está vacío en 74 filas
         columns: (2.4fr, 3fr, 4.2fr, 2fr),
         align: (left, left, left, left),
         [*Problema*], [*Decisión*], [*Justificación*], [*Filas afectadas*],
-        [Filas idénticas en las 6 columnas], [Eliminar duplicados exactos y conservar la primera aparición], [El CSV no guarda URL ni fecha; una repetición equivale a la misma publicación leída dos veces y sesga conteos y promedios.], [256 (15.2 % de 1,680)],
-        [Texto con espacios duros, comillas y guiones tipográficos, puntos finales y espacios repetidos], [Normalizar `product`, `brand` y `seller` a mayúsculas ASCII, sin espacios repetidos ni punto final], [Evita que `OH SHOP` y `OH SHOP.` cuenten como dos vendedores y permite deduplicar de nuevo (apareció 1 duplicado oculto).], [286 cambian de texto; 1 duplicado nuevo],
-        [Accesorios, repuestos y otros equipos en las secciones de televisores, celulares y laptops], [Retirar lo que no es el equipo, con reglas por categoría sobre el inicio del nombre; guardar las filas retiradas con su motivo], [Sin el filtro, la mediana de precio de televisores es S/ 99 (cables y controles). Mirar el inicio del nombre evita falsos positivos como "TELEVISOR … CON CONTROL DE VOZ".], [386 (27.1 % de 1,423)],
-        [Etiqueta `GENERICO` en `brand`], [Conservar `GENERICO` como categoría explícita (la marca ya viene en mayúsculas)], [Asignar una marca a un producto sin marca sería inventar un dato; borrarlos quitaría productos válidos. Quien analice marcas decide si excluye `GENERICO`.], [`GENERICO` baja de 238 a 11 al retirar accesorios],
-        [`list_price` vacío], [Imputar con `internet_price` y marcar con `list_price_imputed`], [El spider deja el campo vacío cuando no hay precio tachado, es decir, sin descuento. En las 1,001 filas con precio de lista el precio internet es siempre menor.], [36 (3.5 % de 1,037)],
-        [Precios extremos], [Marcar con `is_price_outlier` (IQR 1.5 sobre `internet_price`, dentro de cada categoría y después de retirar accesorios); no eliminar], [Son productos reales de gama alta (laptops de hasta S/ 27,346) y el grupo acordó no borrar datos por precio o descuento alto sin una fuente externa.], [53 marcadas (5.1 %)],
+        [Filas idénticas en las 6 columnas],
+        [Eliminar duplicados exactos y conservar la primera aparición],
+        [El CSV no guarda URL ni fecha; una repetición equivale a la misma publicación leída dos veces y sesga conteos y promedios.],
+        [256 (15.2 % de 1,680)],
+
+        [Texto con espacios duros, comillas y guiones tipográficos, puntos finales y espacios repetidos],
+        [Normalizar `product`, `brand` y `seller` a mayúsculas ASCII, sin espacios repetidos ni punto final],
+        [Evita que `OH SHOP` y `OH SHOP.` cuenten como dos vendedores y permite deduplicar de nuevo (apareció 1 duplicado oculto).],
+        [286 cambian de texto; 1 duplicado nuevo],
+
+        [Accesorios, repuestos y otros equipos en las secciones de televisores, celulares y laptops],
+        [Retirar lo que no es el equipo, con reglas por categoría sobre el inicio del nombre; guardar las filas retiradas con su motivo],
+        [Sin el filtro, la mediana de precio de televisores es S/ 99 (cables y controles). Mirar el inicio del nombre evita falsos positivos como "TELEVISOR … CON CONTROL DE VOZ".],
+        [386 (27.1 % de 1,423)],
+
+        [Etiqueta `GENERICO` en `brand`],
+        [Conservar `GENERICO` como categoría explícita (la marca ya viene en mayúsculas)],
+        [Asignar una marca a un producto sin marca sería inventar un dato; borrarlos quitaría productos válidos. Quien analice marcas decide si excluye `GENERICO`.],
+        [`GENERICO` baja de 238 a 11 al retirar accesorios],
+
+        [`list_price` vacío],
+        [Imputar con `internet_price` y marcar con `list_price_imputed`],
+        [El spider deja el campo vacío cuando no hay precio tachado, es decir, sin descuento. En las 1,001 filas con precio de lista el precio internet es siempre menor.],
+        [36 (3.5 % de 1,037)],
+
+        [Precios extremos],
+        [Marcar con `is_price_outlier` (IQR 1.5 sobre `internet_price`, dentro de cada categoría y después de retirar accesorios); no eliminar],
+        [Son productos reales de gama alta (laptops de hasta S/ 27,346) y el grupo acordó no borrar datos por precio o descuento alto sin una fuente externa.],
+        [53 marcadas (5.1 %)],
       )
     ],
     caption: [Problemas encontrados, decisiones y filas afectadas en el preprocesamiento],
@@ -297,18 +446,18 @@ En cuanto a valores faltantes, únicamente `list_price` está vacío en 74 filas
 
 == Limpieza
 
-*Duplicados:* Se eliminaron 256 filas idénticas (15.2 %), de forma desigual entre categorías, siendo 22.3 % en laptops, 16.8 % en celulares y 6.6 % en televisores. Tras normalizar el texto apareció una fila repetida más (pasando de 1,424 a 1,423 filas únicas). Además, existen 10 grupos (22 filas) con el mismo producto, vendedor y categoría pero con precio distinto (en 9 grupos cambia el precio internet y en 1 solo el precio de lista), los cuales se conservaron porque pueden ser variantes de una misma publicación (por ejemplo, colores) y las columnas disponibles no permiten distinguirlas de un error de captura.
+*Duplicados:* Se eliminaron 256 filas idénticas (15.2 %), de forma desigual entre categorías, siendo 22.3 % en laptops, 16.8 % en celulares y 6.6 % en televisores. Tras normalizar el texto apareció una fila repetida más (pasando de 1,424 a 1,423 filas únicas). Además, existen 10 grupos (21 filas) con el mismo producto, vendedor y categoría pero con precio distinto (en 8 grupos cambia el precio internet y en 2 solo el precio de lista), los cuales se conservaron porque pueden ser variantes de una misma publicación (por ejemplo, colores) y las columnas disponibles no permiten distinguirlas de un error de captura.
 
 *Accesorios:* Tiene un efecto muy grande: en televisores se retiraron 356 de 523 filas únicas (68.1 %), siendo controles remotos y fundas (132), cables y adaptadores (81), soportes y racks (65), antenas y decodificadores (25), reproductores y dispositivos de streaming (21), proyectores (18) y otros productos (14). En celulares salieron 29 filas (6.2 %), casi todas repuestos de cámara (25), y en laptops un monitor portátil. La cifra de televisores supera la estimación inicial del grupo (44 %) porque aquí también salen proyectores y dispositivos que no son televisores. La regla se validó revisando a mano los productos más baratos que se conservan y los productos caros que se retiran. Estos últimos son 4 proyectores y una pizarra digital interactiva, ninguno siendo un televisor de consumo.
 
 #align(center)[
   #figure(
-    image("img/pre_01_accesorios_antes_despues.png", width: 100%),
+    image("/data/pipeline/img/pre_01_accesorios_antes_despues.png", width: 100%),
     caption: [Filas por categoría en cada etapa (izquierda) y precio internet antes y después de retirar accesorios (derecha, en escala logarítmica)],
   )
 ]
 
-La mediana de precio de televisores pasa de S/ 99 a S/ 1,729, mientras que en celulares (S/ 1,330 a S/ 1,399) y laptops (S/ 3,719 a S/ 3,739) casi no cambia. Sin este filtro, cualquier comparación de precios entre categorías habría sido engañosa.
+La mediana de precio de televisores pasa de S/ 99 a S/ 1,729, mientras que en celulares (S/ 1,339 a S/ 1,399) y laptops (S/ 3,719 a S/ 3,739) casi no cambia. Sin este filtro, cualquier comparación de precios entre categorías habría sido engañosa.
 
 *Valores faltantes:* La variable `list_price` está vacía en 36 de las 1,037 filas que quedan (3.5 %), siendo 16 en laptops, 15 en celulares y 5 en televisores. Según el código del spider, el campo proviene del precio tachado de la tarjeta, de modo que un vacío significa ausencia de rebaja. Los datos lo respaldan ya que en las 1,001 filas con precio de lista, el precio internet nunca iguala ni supera al de lista. Por eso se imputó con `internet_price`, que mantiene coherente el cálculo de descuento (cero para esos productos) y se dejó la bandera `list_price_imputed` para poder revertir el supuesto. Tras esta imputación, el dataset limpio queda con *0 % de valores nulos* en todas sus variables.
 
@@ -318,7 +467,7 @@ La mediana de precio de televisores pasa de S/ 99 a S/ 1,729, mientras que en ce
 
 #align(center)[
   #figure(
-    image("img/pre_02_outliers_precio.png", width: 100%),
+    image("/data/pipeline/img/pre_02_outliers_precio.png", width: 100%),
     caption: [Precios atípicos marcados dentro de cada categoría (puntos rojos). El eje vertical es logarítmico solo para poder ver todos los precios; la regla del IQR se calculó sobre soles.],
   )
 ]
@@ -339,14 +488,16 @@ Se fijaron los tipos de dato (`category` como categórica, los dos precios como 
 
 #align(center)[
   #figure(
-    image("img/pre_03_filas_afectadas_por_paso.png", width: 90%),
+    image("/data/pipeline/img/pre_03_filas_afectadas_por_paso.png", width: 90%),
     caption: [Filas afectadas por cada paso del preprocesamiento],
   )
 ]
 
 = Feature Engineering
 
-La etapa de ingeniería de características se implementa en `pipeline/processing_data.py` y se documenta en el notebook `03_feature_engineering.ipynb`. Recibe como entrada el dataset limpio (`data/clean/falabella_cleaned.csv`, 1,037 registros y 8 columnas) y genera el dataset procesado (`data/processed/falabella_processed.csv`, 1,037 registros y 16 columnas), creando *8 nuevas variables* sin introducir ningún valor nulo (0 % de NA en las 16 columnas).
+La etapa de ingeniería de características se implementa en `pipeline/processing_data.py` y se documenta en el notebook `03_feature_engineering.ipynb`.
+
+Recibe como entrada el dataset limpio (`data/clean/falabella_cleaned.csv`, 1,037 registros y 8 columnas) y genera el dataset procesado (`data/processed/falabella_processed.csv`, 1,037 registros y 16 columnas), creando *8 nuevas variables* sin introducir ningún valor nulo (0 % de NA en las 16 columnas).
 
 #align(center)[
   #figure(
@@ -354,15 +505,50 @@ La etapa de ingeniería de características se implementa en `pipeline/processin
       #table(
         columns: (2.1fr, 2.8fr, 3.8fr, 1.5fr),
         align: (left, left, left, center),
-        [*Variable creada*], [*Fórmula o regla de construcción*], [*Justificación analítica*], [*Objetivo que responde*],
-        [`has_discount` \ _(Binario 0/1)_], [$1$ si `list_price` $>$ `internet_price`; $0$ si son iguales.], [Separa las publicaciones con oferta activa (96.5 %) de aquellas sin rebaja (3.5 %).], [Objetivo 1],
-        [`discount_amount` \ _(Numérico, S/)_], [`list_price` $-$ `internet_price`], [Mide el ahorro nominal en soles para comparar el beneficio monetario real entre gamas.], [Objetivo 1],
-        [`discount_pct` \ _(Numérico, %)_], [$("list_price" - "internet_price") / "list_price"  times 100$], [Estandariza la magnitud de la rebaja en porcentaje (0 % a 92.88 %) para comparar categorías de distinto valor.], [Objetivos 1 y 2],
-        [`prices_category` \ _(`low`, `mid`, `high`)_], [Terciles empíricos ($P_(33.3)$ y $P_(66.7)$) de `internet_price` calculados dentro de cada `category`.], [Evita mezclar escalas de precios entre categorías y permite estratificar la competencia por nivel de gama.], [Objetivos 1, 2 y 3],
-        [`seller_type` \ _(Categórico)_], [`FALABELLA_DIRECT` si `seller` $in$ {`FALABELLA`, `TOTTUS`, `SODIMAC`}; si no, `MARKETPLACE_SELLER`.], [Agrupa las ventas directas del grupo retail (14.9 %) frente a los 183 vendedores externos (85.1 %).], [Objetivo 2],
-        [`is_refurbished` \ _(Binario 0/1)_], [Regex en `product`: `REACONDICIONADO`, `OPEN BOX`, `REFURBISHED`, `SEMI NUEVO`.], [Aísla equipos de segunda selección (17.4 % en celulares, sobre todo iPhones) que distorsionarían el piso de precios.], [Objetivos 1 y 3],
-        [`is_bundle` \ _(Binario 0/1)_], [Regex en `product`: `COMBO`, `PACK`, `KIT`, `REGALO` o `+ ACCESORIO` (excluyendo `8+256GB`, `FHD+`, `SIM+ESIM`).], [Distingue paquetes promocionales con accesorios incluidos (9.4 % del total) de los equipos individuales.], [Objetivos 1 y 3],
-        [`inches` \ _(Numérico, pulg)_], [Regex de diagonal de pantalla en `tvs` (15" a 100"); $0$ = no aplica en `phones` y `laptops`.], [Alcanza 100 % de extracción en los 167 televisores para evaluar el tamaño de panel como driver de precio sin generar NAs.], [Objetivo 3],
+        [*Variable creada*],
+        [*Fórmula o regla de construcción*],
+        [*Justificación analítica*],
+        [*Objetivo que responde*],
+
+        [`has_discount` \ _(Binario 0/1)_],
+        [$1$ si `list_price` $>$ `internet_price`; $0$ si son iguales.],
+        [Separa las publicaciones con oferta activa (96.5 %) de aquellas sin rebaja (3.5 %).],
+        [Objetivo 1],
+
+        [`discount_amount` \ _(Numérico, S/)_],
+        [`list_price` $-$ `internet_price`],
+        [Mide el ahorro nominal en soles para comparar el beneficio monetario real entre gamas.],
+        [Objetivo 1],
+
+        [`discount_pct` \ _(Numérico, %)_],
+        [$("list_price" - "internet_price") / "list_price" times 100$],
+        [Estandariza la magnitud de la rebaja en porcentaje (0 % a 92.88 %) para comparar categorías de distinto valor.],
+        [Objetivos 1 y 2],
+
+        [`prices_category` \ _(`low`, `mid`, `high`)_],
+        [Terciles empíricos ($P_(33.3)$ y $P_(66.7)$) de `internet_price` calculados dentro de cada `category`.],
+        [Evita mezclar escalas de precios entre categorías y permite estratificar la competencia por nivel de gama.],
+        [Objetivos 1, 2 y 3],
+
+        [`seller_type` \ _(Categórico)_],
+        [`FALABELLA_DIRECT` si `seller` $in$ {`FALABELLA`, `TOTTUS`, `SODIMAC`}; si no, `MARKETPLACE_SELLER`.],
+        [Agrupa las ventas directas del grupo retail (14.9 %) frente a los 183 vendedores externos (85.1 %).],
+        [Objetivo 2],
+
+        [`is_refurbished` \ _(Binario 0/1)_],
+        [Regex en `product`: `REACONDICIONADO`, `OPEN BOX`, `REFURBISHED`, `SEMI NUEVO`.],
+        [Aísla equipos de segunda selección (17.4 % en celulares, sobre todo iPhones) que distorsionarían el piso de precios.],
+        [Objetivos 1 y 3],
+
+        [`is_bundle` \ _(Binario 0/1)_],
+        [Regex en `product`: `COMBO`, `PACK`, `KIT`, `REGALO` o `+ ACCESORIO` (excluyendo `8+256GB`, `FHD+`, `SIM+ESIM`).],
+        [Distingue paquetes promocionales con accesorios incluidos (9.4 % del total) de los equipos individuales.],
+        [Objetivos 1 y 3],
+
+        [`inches` \ _(Numérico, pulg)_],
+        [Regex de diagonal de pantalla en `tvs` (15" a 100"); $0$ = no aplica en `phones` y `laptops`.],
+        [Alcanza 100 % de extracción en los 167 televisores para evaluar el tamaño de panel como driver de precio sin generar NAs.],
+        [Objetivo 3],
       )
     ],
     caption: [Variables construidas en la etapa de Feature Engineering],
@@ -373,16 +559,36 @@ La etapa de ingeniería de características se implementa en `pipeline/processin
 
 Dado que la distribución de precios difiere drásticamente entre laptops, celulares y televisores, los puntos de corte de los terciles empíricos ($P_(33.3)$ y $P_(66.7)$) se calcularon de forma independiente dentro de cada categoría limpia y se contrastaron con los rangos comerciales del mercado retail peruano:
 
+#let gama-desc = (
+  laptops: [Entrada: ofimática Core i3/i5 y Ryzen 3/5; Media: corporativas y gamer RTX 3050/4050; Alta: gamer RTX 4060/5060+ y MacBooks.],
+  phones: [Entrada: gama básica 4G; Media: gama media 5G y reacondicionados de entrada; Alta: flagships Apple, Galaxy S y Xiaomi Ultra.],
+  tvs: [Entrada: LED/QLED de 32" a 50"; Media: paneles 4K UHD/QLED de 55" a 65"; Alta: OLED, MiniLED y formatos de 75" a 100".],
+)
+
 #align(center)[
   #figure(
     text(size: 8.5pt)[
       #table(
         columns: (1fr, 1.1fr, 1.5fr, 1.1fr, 1.3fr, 3.6fr),
         align: (left + horizon, center + horizon, center + horizon, center + horizon, center + horizon, left + horizon),
-        [*Categoría*], [*Corte `low`* \ ($<= P_(33.3)$)], [*Corte `mid`* \ ($P_(33.3) - P_(66.7)$)], [*Corte `high`* \ ($> P_(66.7)$)], [*Registros* \ (`low` / `mid` / `high`)], [*Correspondencia comercial en el retail tecnológico*],
-        [`laptops`], [$<=$ S/ 3,199], [S/ 3,200 – S/ 4,699], [$>$ S/ 4,699], [155 / 136 / 142], [Entrada: ofimática Core i3/i5 y Ryzen 3/5; Media: corporativas y gamer RTX 3050/4050; Alta: gamer RTX 4060/5060+ y MacBooks.],
-        [`phones`], [$<=$ S/ 892], [S/ 893 – S/ 2,126], [$>$ S/ 2,126], [146 / 145 / 146], [Entrada: gama básica 4G; Media: gama media 5G y reacondicionados de entrada; Alta: flagships Apple, Galaxy S y Xiaomi Ultra.],
-        [`tvs`], [$<=$ S/ 1,489], [S/ 1,490 – S/ 1,999], [$>$ S/ 1,999], [57 / 55 / 55], [Entrada: LED/QLED de 32" a 50"; Media: paneles 4K UHD/QLED de 55" a 65"; Alta: OLED, MiniLED y formatos de 75" a 100".],
+        [*Categoría*],
+        [*Corte `low`* \ ($<= P_(33.3)$)],
+        [*Corte `mid`* \ ($P_(33.3) - P_(66.7)$)],
+        [*Corte `high`* \ ($> P_(66.7)$)],
+        [*Registros* \ (`low` / `mid` / `high`)],
+        [*Correspondencia comercial en el retail tecnológico*],
+        ..umb-rows.map(r => {
+          let p33 = int(calc.round(float(r.p33_cutoff)))
+          let p66 = int(calc.round(float(r.p66_cutoff)))
+          (
+            raw(r.category),
+            [$<=$ S/ #fmt-int(p33)],
+            [S/ #fmt-int(p33 + 1) – S/ #fmt-int(p66)],
+            [$>$ S/ #fmt-int(p66)],
+            [#r.low_count / #r.mid_count / #r.high_count],
+            gama-desc.at(r.category),
+          )
+        }).flatten(),
       )
     ],
     caption: [Umbrales de terciles empíricos por categoría y validación con segmentos comerciales],
@@ -391,7 +597,7 @@ Dado que la distribución de precios difiere drásticamente entre laptops, celul
 
 #align(center)[
   #figure(
-    image("img/fe_01_gamas_terciles.png", width: 100%),
+    image("/data/pipeline/img/fe_01_gamas_terciles.png", width: 100%),
     caption: [Segmentación de gamas de precio (`low`, `mid`, `high`) por terciles empíricos dentro de cada categoría],
   )
 ]
@@ -400,11 +606,12 @@ Dado que la distribución de precios difiere drásticamente entre laptops, celul
 
 En la variable `seller_type`, las ventas directas del grupo (`FALABELLA_DIRECT`: Falabella con 113 publicaciones, Tottus con 32 y Sodimac con 10) suman 155 registros (14.9 %), con una participación mucho mayor en televisores (35.3 %) que en celulares (13.0 %) y laptops (9.0 %).
 
-Por su parte, las expresiones regulares aplicadas sobre `product` identificaron 93 equipos reacondicionados (`is_refurbished == 1`), concentrados en celulares (76 filas, 17.4 %) y laptops corporativas ThinkPad (17 filas, 3.9 %), sin presencia en televisores. Asimismo, se detectaron 97 paquetes promocionales (`is_bundle == 1`: 52 en celulares, 25 en televisores y 20 en laptops), evitando falsos positivos en nomenclaturas técnicas como `8+256GB` o `FHD+`. Finalmente, en `tvs` se extrajo el tamaño en pulgadas (`inches`) en los 167 televisores (100 % de efectividad), predominando los formatos de 65" (53 unidades), 55" (30 unidades), 75" (19 unidades), 43" (16 unidades) y 32" (15 unidades).
+Por su parte, las expresiones regulares aplicadas sobre `product` identificaron 93 equipos reacondicionados (`is_refurbished == 1`), concentrados en celulares (76 filas, 17.4 %) y laptops corporativas ThinkPad (17 filas, 3.9 %), sin presencia en televisores. Asimismo, se detectaron 97 paquetes promocionales (`is_bundle == 1`: 52 en celulares, 25 en televisores y 20 en laptops), evitando falsos positivos en nomenclaturas técnicas como `8+256GB` o `FHD+`.
+Finalmente, en `tvs` se extrajo el tamaño en pulgadas (`inches`) en los 167 televisores (100 % de efectividad), predominando los formatos de 65" (53 unidades), 55" (30 unidades), 75" (19 unidades), 43" (16 unidades) y 32" (15 unidades).
 
 #align(center)[
   #figure(
-    image("img/fe_02_banderas_y_vendedores.png", width: 100%),
+    image("/data/pipeline/img/fe_02_banderas_y_vendedores.png", width: 100%),
     caption: [Proporción de tipos de vendedor, banderas comerciales (`is_refurbished`, `is_bundle`) y distribución de pulgadas en televisores],
   )
 ]
@@ -413,7 +620,13 @@ Por su parte, las expresiones regulares aplicadas sobre `product` identificaron 
 
 == Concentración de Precios y Dispersión Relativa por Categoría (Objetivo 1)
 
-El análisis exploratorio de precios y descuentos se desarrolla en el notebook `04_analisis_descuentos_categorias.ipynb`. Debido a la asimetría positiva de los precios, la dispersión dentro de cada categoría se cuantifica mediante el Rango Intercuartílico ($"IQR" = Q_3 - Q_1$) y el *IQR Relativo* ($"IQR" / "Mediana"  times 100$):
+El análisis exploratorio de precios y descuentos se desarrolla en el notebook `04_analisis_descuentos_categorias.ipynb`. Debido a la asimetría positiva de los precios, la dispersión dentro de cada categoría se cuantifica mediante el Rango Intercuartílico ($"IQR" = Q_3 - Q_1$) y el *IQR Relativo* ($"IQR" / "Mediana" times 100$):
+
+#let iqr-rels = disp-rows.map(r => float(r.iqr_relativo_pct))
+#let max-iqr-rel = calc.max(..iqr-rels)
+#let min-iqr-rel = calc.min(..iqr-rels)
+#let cat-meds = disp-rows.map(r => cat-median(proc-rows, r.category, "discount_pct"))
+#let max-cat-med = calc.max(..cat-meds)
 
 #align(center)[
   #figure(
@@ -422,9 +635,22 @@ El análisis exploratorio de precios y descuentos se desarrolla en el notebook `
         columns: 8,
         align: (left, center, center, center, center, center, center, center),
         [*Categoría*], [*N*], [*Q1 (S/)*], [*Mediana (S/)*], [*Q3 (S/)*], [*IQR (S/)*], [*IQR Relativo (%)*], [*Mediana Desc. (%)*],
-        [`laptops`], [433], [2,859.00], [3,739.00], [5,699.00], [2,840.00], [76.0 %], [19.12 %],
-        [`phones`], [437], [699.00], [1,399.00], [2,779.00], [2,080.00], [*148.7 %*], [24.75 %],
-        [`tvs`], [167], [1,299.00], [1,729.00], [2,399.45], [1,100.45], [*63.6 %*], [*34.80 %*],
+        ..disp-rows.map(r => {
+          let iqr-rel = float(r.iqr_relativo_pct)
+          let m-desc = cat-median(proc-rows, r.category, "discount_pct")
+          let iqr-txt = [#fmt-dec(iqr-rel, digits: 1) %]
+          let desc-txt = [#fmt-dec(m-desc, digits: 2) %]
+          (
+            raw(r.category),
+            [#fmt-int(r.n)],
+            [#fmt-dec(r.q1_soles)],
+            [#fmt-dec(r.median_soles)],
+            [#fmt-dec(r.q3_soles)],
+            [#fmt-dec(r.iqr_soles)],
+            if iqr-rel == max-iqr-rel or iqr-rel == min-iqr-rel { strong(iqr-txt) } else { iqr-txt },
+            if m-desc == max-cat-med { strong(desc-txt) } else { desc-txt },
+          )
+        }).flatten(),
       )
     ],
     caption: [Estadísticos robustos de precio internet y dispersión relativa por categoría],
@@ -437,7 +663,7 @@ Los resultados revelan un contraste estructural entre las tres líneas tecnológ
 
 #align(center)[
   #figure(
-    image("img/ana_01_violin_precios_categoria.png", width: 100%),
+    image("/data/pipeline/img/ana_01_violin_precios_categoria.png", width: 100%),
     caption: [Gráficos de violín del precio internet (izquierda, escala logarítmica) y del porcentaje de descuento (derecha) por categoría],
   )
 ]
@@ -445,23 +671,26 @@ Los resultados revelan un contraste estructural entre las tres líneas tecnológ
 == Magnitud de Descuentos según Nivel de Gama y Relación Precio–Descuento
 
 Al cruzar las variables de descuento (`discount_pct` y `discount_amount`) con los tres niveles de gama (`low`, `mid`, `high`), se identifica un patrón sistemático en las tres categorías:
-
 #align(center)[
   #figure(
     text(size: 9.5pt)[
       #table(
         columns: 7,
         align: (left, center, center, center, center, center, center),
-        [*Categoría*], [*Gama*], [*N*], [*% con Desc.*], [*Mediana Precio (S/)*], [*Mediana Desc. (%)*], [*Mediana Ahorro (S/)*],
-        [`laptops`], [`low`], [155], [95.5 %], [2,499.00], [*23.33 %*], [620.00],
-        [`laptops`], [`mid`], [136], [99.3 %], [3,799.00], [18.74 %], [977.45],
-        [`laptops`], [`high`], [142], [94.4 %], [6,599.00], [17.24 %], [*1,388.50*],
-        [`phones`], [`low`], [146], [97.3 %], [519.50], [*29.39 %*], [200.00],
-        [`phones`], [`mid`], [145], [97.9 %], [1,399.00], [24.22 %], [420.00],
-        [`phones`], [`high`], [146], [94.5 %], [3,379.00], [23.58 %], [*965.00*],
-        [`tvs`], [`low`], [57], [100.0 %], [1,099.00], [*37.02 %*], [580.00],
-        [`tvs`], [`mid`], [55], [90.9 %], [1,729.00], [34.80 %], [900.00],
-        [`tvs`], [`high`], [55], [100.0 %], [3,299.00], [31.25 %], [*1,700.00*],
+        [*Categoría*], [*Gama*], [*N*], [*\% con Desc.*], [*Mediana Precio (S/)*], [*Mediana Desc. (%)*], [*Mediana Ahorro (S/)*],
+        ..gamas-rows.map(r => {
+          let d-txt = [#fmt-dec(r.mediana_desc_pct, digits: 2) %]
+          let a-txt = [#fmt-dec(r.mediana_ahorro_soles, digits: 2)]
+          (
+            raw(r.category),
+            raw(r.prices_category),
+            [#fmt-int(r.n)],
+            [#fmt-dec(r.pct_con_descuento, digits: 1) %],
+            [#fmt-dec(r.mediana_precio_soles, digits: 2)],
+            if r.prices_category == "low" { strong(d-txt) } else { d-txt },
+            if r.prices_category == "high" { strong(a-txt) } else { a-txt },
+          )
+        }).flatten(),
       )
     ],
     caption: [Comparación del porcentaje de descuento y ahorro en soles por categoría y gama],
@@ -470,7 +699,7 @@ Al cruzar las variables de descuento (`discount_pct` y `discount_amount`) con lo
 
 #align(center)[
   #figure(
-    image("img/ana_02_boxplots_descuento_gama.png", width: 100%),
+    image("/data/pipeline/img/ana_02_boxplots_descuento_gama.png", width: 100%),
     caption: [Boxplots del porcentaje de descuento (izquierda) y del ahorro en soles (derecha) por categoría y gama de precio],
   )
 ]
@@ -481,7 +710,7 @@ En las tres categorías, la *rebaja porcentual mediana es mayor en la gama baja 
 
 #align(center)[
   #figure(
-    image("img/ana_03_scatter_precio_descuento.png", width: 100%),
+    image("/data/pipeline/img/ana_03_scatter_precio_descuento.png", width: 100%),
     caption: [Diagramas de dispersión entre precio internet y porcentaje de descuento con rectas de regresión por categoría],
   )
 ]
@@ -495,7 +724,7 @@ El cruce con las banderas extraídas en Feature Engineering permite explicar las
 
 #align(center)[
   #figure(
-    image("img/ana_04_anomalias_reacondicionados_combos.png", width: 100%),
+    image("/data/pipeline/img/ana_04_anomalias_reacondicionados_combos.png", width: 100%),
     caption: [Impacto de la condición reacondicionada en celulares Apple vs. otras marcas (izquierda) y comparación de descuentos entre equipos individuales y combos (derecha)],
   )
 ]
@@ -518,10 +747,17 @@ El análisis del segundo objetivo se desarrolla en el notebook `05_analisis_vend
         columns: 6,
         align: (left, center, center, left, center, center),
         [*Categoría*], [*Publicaciones*], [*Vendedores distintos*], [*Vendedor líder*], [*Top 5*], [*HHI*],
-        [`laptops`], [433], [83], [NORTICO PE (8.3 %)], [33.3 %], [362],
-        [`phones`], [437], [100], [FALABELLA (8.7 %)], [25.2 %], [247],
-        [`tvs`], [167], [41], [FALABELLA (25.1 %)], [47.9 %], [882],
-        [*Total*], [1037], [186], [FALABELLA (10.9 %)], [24.0 %], [240],
+        ..conc-rows.map(r => {
+          let is-tot = r.category == "TOTAL"
+          (
+            if is-tot { [*Total*] } else { raw(r.category) },
+            [#fmt-int(r.publicaciones)],
+            [#fmt-int(r.vendedores_distintos)],
+            [#r.vendedor_lider (#fmt-dec(r.pct_lider, digits: 1) %)],
+            [#fmt-dec(r.pct_top5, digits: 1) %],
+            [#fmt-int(r.hhi)],
+          )
+        }).flatten(),
       )
     ],
     caption: [Concentración de la oferta por vendedor (calculada sobre publicaciones, no sobre ventas)],
@@ -530,7 +766,7 @@ El análisis del segundo objetivo se desarrolla en el notebook `05_analisis_vend
 
 #align(center)[
   #figure(
-    image("img/ana_05_composicion_vendedores.png", width: 100%),
+    image("/data/pipeline/img/ana_05_composicion_vendedores.png", width: 100%),
     caption: [Participación de cada tipo de vendedor por categoría (izquierda) y 12 vendedores con más publicaciones (derecha)],
   )
 ]
@@ -552,15 +788,21 @@ Además, cada tipo de vendedor ofrece una mezcla de gamas distinta. Entre los eq
           table.cell(colspan: 3)[*Precio internet (mediana)*], table.cell(colspan: 3)[*Descuento declarado (mediana)*],
           [*Falabella*], [*Marketplace*], [*$p_"Holm"$*], [*Falabella*], [*Marketplace*], [*$p_"Holm"$*],
         ),
-        [`laptops`], [`low`], [11 / 129], [S/ 2,449], [S/ 2,599], [1.000], [37.2 %], [22.5 %], [*0.007*],
-        [`laptops`], [`mid`], [17 / 118], [S/ 3,899], [S/ 3,789], [0.964], [34.3 %], [17.1 %], [*0.004*],
-        [`laptops`], [`high`], [11 / 130], [S/ 6,599], [S/ 6,624], [1.000], [34.0 %], [16.7 %], [*0.040*],
-        [`phones`], [`low`], [10 / 125], [S/ 534], [S/ 499], [1.000], [20.9 %], [30.1 %], [0.249],
-        [`phones`], [`mid`], [21 / 81], [S/ 1,399], [S/ 1,399], [1.000], [21.1 %], [24.7 %], [0.537],
-        [`phones`], [`high`], [26 / 98], [S/ 3,849], [S/ 3,414], [0.964], [11.5 %], [25.9 %], [*0.003*],
-        [`tvs`], [`low`], [15 / 42], [S/ 1,199], [S/ 1,074], [1.000], [33.4 %], [37.2 %], [0.537],
-        [`tvs`], [`mid`], [16 / 39], [S/ 1,799], [S/ 1,729], [1.000], [30.7 %], [35.4 %], [0.537],
-        [`tvs`], [`high`], [28 / 27], [S/ 3,699], [S/ 2,999], [0.655], [25.9 %], [38.6 %], [0.113],
+        ..mw-p-rows.zip(mw-d-rows).map(((p, d)) => {
+          let ph-p = [#fmt-dec(p.p_holm, digits: 3)]
+          let ph-d = [#fmt-dec(d.p_holm, digits: 3)]
+          (
+            raw(p.category),
+            raw(p.prices_category),
+            [#p.n_falabella / #p.n_marketplace],
+            [S/ #fmt-int(p.mediana_falabella)],
+            [S/ #fmt-int(p.mediana_marketplace)],
+            if p.significativo_holm == "True" { strong(ph-p) } else { ph-p },
+            [#fmt-dec(d.mediana_falabella, digits: 1) %],
+            [#fmt-dec(d.mediana_marketplace, digits: 1) %],
+            if d.significativo_holm == "True" { strong(ph-d) } else { ph-d },
+          )
+        }).flatten(),
       )
     ],
     caption: [Prueba U de Mann-Whitney entre `FALABELLA_DIRECT` (F) y `MARKETPLACE_SELLER` (M) por categoría y gama, solo equipos nuevos. En negrita, las diferencias significativas tras la corrección de Holm],
@@ -569,7 +811,7 @@ Además, cada tipo de vendedor ofrece una mezcla de gamas distinta. Entre los eq
 
 #align(center)[
   #figure(
-    image("img/ana_06_precio_vendedor_por_gama.png", width: 100%),
+    image("/data/pipeline/img/ana_06_precio_vendedor_por_gama.png", width: 100%),
     caption: [Precio internet por tipo de vendedor dentro de cada gama (equipos nuevos, escala logarítmica)],
   )
 ]
@@ -582,7 +824,7 @@ En cambio, si se compara la categoría completa sin estratificar por gama, Falab
 
 #align(center)[
   #figure(
-    image("img/ana_07_descuento_vendedor_por_gama.png", width: 100%),
+    image("/data/pipeline/img/ana_07_descuento_vendedor_por_gama.png", width: 100%),
     caption: [Descuento declarado (`discount_pct`) por tipo de vendedor dentro de cada gama (equipos nuevos)],
   )
 ]
@@ -610,24 +852,15 @@ Para cada categoría se analizaron las marcas con al menos 10 publicaciones de e
         columns: 7,
         align: (left, left, center, right, center, center, center),
         [*Categoría*], [*Marca*], [*n*], [*Mediana*], [*IQR relativo*], [*% low / mid / high*], [*Desc. mediano*],
-        [`laptops`], [MSI], [12], [S/ 6,599], [5.7 %], [0 / 0 / 100], [20.0 %],
-        [`laptops`], [APPLE], [28], [S/ 5,699], [44.6 %], [7 / 29 / 64], [11.8 %],
-        [`laptops`], [ASUS], [109], [S/ 4,050], [106.2 %], [35 / 22 / 43], [25.3 %],
-        [`laptops`], [ACER], [17], [S/ 3,899], [77.2 %], [41 / 29 / 29], [20.3 %],
-        [`laptops`], [LENOVO], [147], [S/ 3,599], [47.9 %], [32 / 44 / 24], [17.8 %],
-        [`laptops`], [HP], [93], [S/ 3,399], [60.9 %], [43 / 33 / 24], [20.0 %],
-        [`phones`], [APPLE], [46], [S/ 5,069], [57.7 %], [0 / 0 / 100], [25.2 %],
-        [`phones`], [SAMSUNG], [64], [S/ 2,199], [129.4 %], [23 / 27 / 50], [27.4 %],
-        [`phones`], [OPPO], [12], [S/ 1,599], [25.0 %], [8 / 92 / 0], [36.0 %],
-        [`phones`], [XIAOMI], [79], [S/ 1,419], [131.1 %], [34 / 27 / 39], [19.9 %],
-        [`phones`], [HONOR], [59], [S/ 1,099], [91.5 %], [36 / 52 / 12], [20.1 %],
-        [`phones`], [MOTOROLA], [25], [S/ 1,049], [81.0 %], [44 / 40 / 16], [27.7 %],
-        [`phones`], [INFINIX], [12], [S/ 821], [63.0 %], [67 / 25 / 8], [15.2 %],
-        [`phones`], [ZTE], [15], [S/ 459], [59.2 %], [80 / 20 / 0], [22.9 %],
-        [`tvs`], [SAMSUNG], [48], [S/ 1,972], [93.2 %], [23 / 29 / 48], [31.0 %],
-        [`tvs`], [JVC], [13], [S/ 1,900], [105.3 %], [46 / 8 / 46], [45.9 %],
-        [`tvs`], [TCL], [25], [S/ 1,849], [37.9 %], [24 / 36 / 40], [31.7 %],
-        [`tvs`], [LG], [59], [S/ 1,659], [38.6 %], [37 / 41 / 22], [35.4 %],
+        ..m-rank-rows.zip(m-gama-rows).map(((rk, gm)) => (
+          raw(rk.category),
+          [#rk.brand],
+          [#rk.n_nuevos],
+          [S/ #fmt-int(rk.mediana_soles)],
+          [#fmt-dec(rk.iqr_relativo_pct, digits: 1) %],
+          [#int(calc.round(float(gm.pct_low))) / #int(calc.round(float(gm.pct_mid))) / #int(calc.round(float(gm.pct_high)))],
+          [#fmt-dec(rk.mediana_desc_pct, digits: 1) %],
+        )).flatten(),
       )
     ],
     caption: [Precio internet por marca (equipos nuevos), ordenado por mediana dentro de cada categoría],
@@ -636,14 +869,14 @@ Para cada categoría se analizaron las marcas con al menos 10 publicaciones de e
 
 #align(center)[
   #figure(
-    image("img/ana_08_ranking_precio_marcas.png", width: 100%),
+    image("/data/pipeline/img/ana_08_ranking_precio_marcas.png", width: 100%),
     caption: [Distribución del precio internet por marca (equipos nuevos, escala logarítmica)],
   )
 ]
 
 #align(center)[
   #figure(
-    image("img/ana_09_marcas_por_gama.png", width: 100%),
+    image("/data/pipeline/img/ana_09_marcas_por_gama.png", width: 100%),
     caption: [Porcentaje del portafolio de cada marca en cada gama (equipos nuevos)],
   )
 ]
@@ -663,13 +896,14 @@ Para cada categoría se analizaron las marcas con al menos 10 publicaciones de e
         columns: 6,
         align: (center, center, center, right, right, center),
         [*Tamaño*], [*n*], [*Rango intercuartílico*], [*Mediana*], [*Mediana S/ por pulgada*], [*% Falabella directo*],
-        [32"], [15], [S/ 449 – S/ 604], [S/ 585], [S/ 18.3], [6.7 %],
-        [43"], [16], [S/ 996 – S/ 1,424], [S/ 1,114], [S/ 25.9], [18.8 %],
-        [50"], [8], [S/ 1,092 – S/ 1,259], [S/ 1,224], [S/ 24.5], [50.0 %],
-        [55"], [30], [S/ 1,359 – S/ 1,900], [S/ 1,674], [S/ 30.4], [50.0 %],
-        [65"], [53], [S/ 1,559 – S/ 2,096], [S/ 1,749], [S/ 26.9], [30.2 %],
-        [75"], [19], [S/ 2,049 – S/ 2,749], [S/ 2,299], [S/ 30.7], [36.8 %],
-        [85"], [9], [S/ 2,899 – S/ 3,499], [S/ 3,299], [S/ 38.8], [66.7 %],
+        ..tvs-rows.map(r => (
+          [#r.inches"],
+          [#r.n],
+          [S/ #fmt-int(r.q1_soles) – S/ #fmt-int(r.q3_soles)],
+          [S/ #fmt-int(r.mediana_soles)],
+          [S/ #fmt-dec(r.mediana_soles_por_pulgada, digits: 1)],
+          [#fmt-dec(r.pct_falabella_direct, digits: 1) %],
+        )).flatten(),
       )
     ],
     caption: [Precio internet de los televisores según el tamaño de pantalla (tamaños con al menos 5 publicaciones; 150 de 167 televisores)],
@@ -678,7 +912,7 @@ Para cada categoría se analizaron las marcas con al menos 10 publicaciones de e
 
 #align(center)[
   #figure(
-    image("img/ana_10_precio_pulgadas_tvs.png", width: 100%),
+    image("/data/pipeline/img/ana_10_precio_pulgadas_tvs.png", width: 100%),
     caption: [Precio internet frente al tamaño de pantalla con la mediana por tamaño (izquierda) y costo mediano por pulgada (derecha)],
   )
 ]
@@ -717,7 +951,7 @@ Cada hallazgo se acompaña de la evidencia que lo respalda y de una recomendaci�
 
 El proyecto permitió transformar 1,680 registros extraídos por web scraping en un dataset de 1,037 equipos verificados y 16 variables sin valores nulos, sobre el que se respondieron los tres objetivos específicos:
 
-- *Objetivo 1 (magnitud, distribución y veracidad de los descuentos).* El descuento es prácticamente universal en el catálogo: el 96.5 % de las publicaciones declara una rebaja. Los televisores tienen los descuentos más agresivos (mediana de 34.8 %, frente a 24.9 % en celulares y 18.8 % en laptops). Los celulares son la categoría más heterogénea en precio (IQR relativo de 148.7 %, 2.34 veces el de los televisores). En las tres categorías, la gama alta mantiene descuentos porcentuales más bajos. En cuanto a la veracidad, la evidencia interna (precios de lista que difieren entre vendedores con el mismo precio final, descuentos extremos casi exclusivos de terceros y un error de digitación de S/ 79,999) indica que el porcentaje de descuento refleja en buena parte el precio de lista declarado y no necesariamente un ahorro real.
+- *Objetivo 1 (magnitud, distribución y veracidad de los descuentos).* El descuento es prácticamente universal en el catálogo: el 96.5 % de las publicaciones declara una rebaja. Los televisores tienen los descuentos más agresivos (mediana de #fmt-dec(cat-median(proc-rows, "tvs", "discount_pct")) %, frente a #fmt-dec(cat-median(proc-rows, "phones", "discount_pct")) % en celulares y #fmt-dec(cat-median(proc-rows, "laptops", "discount_pct")) % en laptops). Los celulares son la categoría más heterogénea en precio (IQR relativo de 148.7 %, 2.34 veces el de los televisores). En las tres categorías, la gama alta mantiene descuentos porcentuales más bajos. En cuanto a la veracidad, la evidencia interna (precios de lista que difieren entre vendedores con el mismo precio final, descuentos extremos casi exclusivos de terceros y un error de digitación de S/ 79,999) indica que el porcentaje de descuento refleja en buena parte el precio de lista declarado y no necesariamente un ahorro real.
 - *Objetivo 2 (competitividad entre tipos de vendedor).* Los vendedores externos *no representan una alternativa más económica* para equipos nuevos: dentro de la misma categoría y gama los precios no difieren significativamente, resultado que se mantiene en los tres escenarios de robustez. Lo que sí difiere es la estrategia de comunicación del descuento y la composición de la oferta: Falabella se concentra en gama alta, y los terceros en gama baja y en equipos reacondicionados, que son su única fuente real de precios más bajos.
 - *Objetivo 3 (posicionamiento y dispersión por marca).* En celulares y laptops la marca es un determinante significativo del precio. Hay marcas de posicionamiento rígido en la gama alta (Apple en celulares, MSI en laptops) y marcas con portafolios elásticos en las tres gamas (Samsung y Xiaomi en celulares; Lenovo, HP, Acer y ASUS en laptops). En televisores, en cambio, la marca no explica el precio y el tamaño de pantalla sí, con una relación creciente pero no proporcional.
 
@@ -744,20 +978,24 @@ La estructura del proyecto es la siguiente:
 #text(size: 9pt)[
   ```md
    SpiderMarketplace/
-      ├── Marketplace/   # Ingestión: Código del web scraper desarrollado con Scrapy.
-      ├── pipeline/      # Automatización: Scripts de ejecución del scraper, limpieza, features y reporte.
-      ├── data/          # Almacenamiento: Datasets divididos por etapas (raw, clean, processed, analysis).
-      ├── notebooks/     # Analítica: Jupyter Notebooks con validación, limpieza, features y análisis.
-      ├── docs/          # Documentación: Diccionarios de datos, recursos gráficos, PPT e informes en Typst.
-      ├── pyproject.toml # Configuración del entorno y gestión de dependencias con uv.
-      └── README.md      # Descripción general e instrucciones de uso del repositorio.
+      ├── Marketplace/     # Ingestión: Código del web scraper desarrollado con Scrapy.
+      ├── pipeline/        # Automatización: scraper, cleaning, processing_data, analysis y report.
+      ├── data/            # Almacenamiento: raw, clean, processed, analysis y salida unificada en pipeline/.
+      ├── notebooks/       # Analítica: Notebooks 01 al 05 (auditoría, limpieza, features y análisis).
+      ├── docs/            # Documentación: Diccionarios de datos, informes en Typst y recursos.
+      ├── pyproject.toml   # Configuración del entorno y dependencias para uv.
+      ├── Requirements.txt # Lista equivalente de dependencias para pip.
+      └── README.md        # Descripción general e instrucciones de uso del repositorio.
   ```
 ]
 
-Para reproducir todo el proyecto es necesario:
+Para reproducir el proyecto completo:
 
-1. Instalar las dependencias:
-  #align(center)[`uv sync`]
+1. Instalar las dependencias (con `uv` o `pip`):
+  #align(center)[`uv sync` #h(1em) o #h(1em) `pip install -r Requirements.txt`]
 
-2. Ejecutar el pipeline:
+2. Ejecutar el pipeline completo de datos, análisis y reporte automático:
   #align(center)[`uv run python pipeline/main.py`]
+
+3. Compilar este informe conectando los resultados generados en `data/pipeline/`:
+  #align(center)[`typst compile --root . docs/report_02.typ`]
