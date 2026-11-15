@@ -1,87 +1,79 @@
 #set par(justify: true)
 #set page(
+  margin: 1.8cm,
   header: align(left)[
     _DS3021 Análisis Computacional de Datos_ \
-    _Semestre 2026-2_
+    _Semestre 2026-1_
   ],
 )
 
-#set text(size: 12pt, lang: "es", font: "New Computer Modern")
+#set text(size: 11pt, lang: "es", font: "New Computer Modern")
 #set heading(numbering: "1.")
 #show link: underline
 
 #align(center)[
-  #text(font: "New Computer Modern Sans", size: 20pt)[
-    *Diccionario de Datos*
-
-    *DS3021 Análisis Computacional de Datos*
+  #text(font: "New Computer Modern", size: 18pt)[
+    *Diccionario de Datos Crudos (`falabella_raw.csv`)*
   ]
 
-  #v(1cm)
+  #v(0.6cm)
 
-  #show table.cell: set text(size: 9pt)
+  #show table.cell: set text(size: 8.8pt)
   #figure(
     table(
-      columns: 6,
+      columns: (1.4fr, 2.3fr, 1.3fr, 1.5fr, 3.0fr, 1.0fr),
       align: (
+        left + horizon,
+        left + horizon,
         center + horizon,
         center + horizon,
-        center + horizon,
-        center + horizon,
-        center + horizon,
+        left + horizon,
         center + horizon,
       ),
-      [*Variable*], [*Descripción*], [*Tipo*], [*Tamaño máximo*], [*Valores*], [*Unidad*],
+      [*Variable*], [*Descripción*], [*Tipo*], [*Tamaño máximo*], [*Valores observados*], [*Unidad*],
 
       [`product`],
-      [Identificador /nombre del producto],
-      [Cadena de Caracteres],
-      [*147* :  encontrado \ \ `TEXT` sin límites por SQL],
-      [Texto en mayúsculas (ej. "`CELULAR GALAXY S26 512GB`")],
+      [Nombre completo de la publicación tal como aparece en Falabella Perú],
+      [Texto \ (`object`)],
+      [131 caracteres],
+      [1,308 títulos distintos (0 % NA). Ej.: `"CELULAR REDMI A5 3GB + 64GB AZUL OCÉANO"`],
       [-],
 
       [`brand`],
-      [Fabricante o marca comercial asociada a un producto],
-      [Categórico],
-      [*15* : encontrado \ \ Delimitado por SQL `VARCHAR(50)`],
-      [95 marcas distintas: `GENERICO, LENOVO, APPLE, ASUS, HP, SAMSUNG, XIAOMI, LG…`],
+      [Fabricante o marca comercial declarada en la publicación],
+      [Categórico \ (`object`)],
+      [21 caracteres],
+      [95 marcas distintas (0 % NA); principales: `GENERICO` (238), `LENOVO` (193), `ASUS` (144), `SAMSUNG` (141), `APPLE` (133)],
       [-],
 
       [`category`],
-      [Clasificación de producto en base a su tipo],
-      [Categórico],
-      [*7* : encontrado \ \ Delimitado por SQL `VARCHAR(50)`],
-      [phones, laptops, tvs],
+      [Línea tecnológica consultada por el spider en Falabella],
+      [Categórico \ (`object`)],
+      [7 caracteres],
+      [`phones` (560), `laptops` (560), `tvs` (560) — 0 % NA],
       [-],
 
       [`seller`],
-      [Comercio que ofrece el producto],
-      [Categórico],
-      [*36* : encontrado \ \ Delimitado por SQL `VARCHAR(50)`],
-      [296 vendedores, en MAYÚSCULAS: `FALABELLA, NORTICO PE, JA INNOVATION, TOTTUS…`],
+      [Comercio o vendedor que publica el producto en el marketplace],
+      [Categórico \ (`object`)],
+      [36 caracteres],
+      [305 vendedores distintos (0 % NA); principales: `FALABELLA` (133), `JA INNOVATION` (72), `COMPUVISION.` (58)],
       [-],
 
-      [`regular_price`],
-      [Precio regular de un producto sin aplicar alguna reducción],
-      [Numérico \ (decimal)],
-      [*7* (5 enteros + 2 decimales) ],
-      [19.90 a 49,999.00 \ \ Variación $0 - 10^6$],
+      [`list_price`],
+      [Precio de lista o tachado sin descuento declarado en la tarjeta (vacío si no hay rebaja)],
+      [Numérico \ (`float64`)],
+      [7 dígitos \ (5 int + 2 dec)],
+      [S/ 22.00 a S/ 79,999.00 (mediana S/ 2,499.00; 74 vacíos = 4.4 % NA)],
       [Soles (S/)],
 
-      [`special_price`],
-      [Precio de un producto con una oferta o promoción],
-      [Numérico \ (decimal)],
-      [*7* (5 enteros + 2 decimales)],
-      [9.89 a 47,999.00 \ \ Variación $0 - 10^6$],
+      [`internet_price`],
+      [Precio vigente de venta en línea mostrado en Falabella Perú],
+      [Numérico \ (`float64`)],
+      [7 dígitos \ (5 int + 2 dec)],
+      [S/ 9.89 a S/ 27,345.56 (mediana S/ 1,599.70; 0 % NA)],
       [Soles (S/)],
-
-      [`has_cmr_discount`],
-      [Indica si un producto cuenta con descuento de tarjeta],
-      [Categórico \ Binario],
-      [1],
-      [0 = No, 1 = Sí],
-      [-],
     ),
-    caption: [Diccionario de datos],
+    caption: [Diccionario de datos crudos (`data/raw/falabella_raw.csv`)],
   )
 ]

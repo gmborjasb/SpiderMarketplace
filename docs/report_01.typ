@@ -3,6 +3,8 @@
 #set heading(numbering: "1.")
 #show link: underline
 
+#let neo-maroon = rgb("BF0140")
+
 #show heading.where(level: 1): it => {
   if it.numbering == none {
     set text(size: 18pt, font: "New Computer Modern Sans", weight: "bold", fill: black)
@@ -21,7 +23,7 @@
   set text(size: 14pt, font: "New Computer Modern Sans")
 
   box[
-    #text(fill: neo-maroon)[#sym.section#counter(heading).display()]
+    #text[#sym.section#counter(heading).display()]
     #h(5pt)
     #it.body
   ]
@@ -98,7 +100,7 @@
   ),
 )
 
-
+#pagebreak()
 = Identificación
 
 Para el presente proyecto, se desarrolló la siguiente distribución de responsabilidades:
@@ -108,10 +110,10 @@ Para el presente proyecto, se desarrolló la siguiente distribución de responsa
     table(
       columns: 2,
       [*Integrante*], [*Responsabilidad*],
-      [Alondra Obregón], [Objetivos, Dataset Preliminar, Viabilidad, Apoyo en Web Scraping],
-      [Axel Portal], [Identificación, Fuente de Datos, Estrategia, Apoyo en Web Scraping],
-      [Danna Gala], [Contexto, Alcance, Diccionario de Datos, Notebook de validación de dataset],
-      [Gerald], [Web Scraping de la página seleccionada],
+      [Alondra Obregón], [Objetivos, Dataset Preliminar, Viabilidad],
+      [Axel Portal], [Alcance, Fuentes de Datos y Estrategia],
+      [Danna Gala], [Contexto, Diccionario de datos y Validación de datos],
+      [Gerald], [Web Scraping, Almacenamiento de Datos],
     ),
     caption: [Distribución de responsabilidades],
   )
@@ -119,35 +121,25 @@ Para el presente proyecto, se desarrolló la siguiente distribución de responsa
 
 = Contexto
 
-El crecimiento del comercio electrónico ha incrementado la cantidad de productos y vendedores disponibles en plataformas de marketplace, generando así una mayor variedad de alternativas para los consumidores. En plataformas como Falabella Perú, un mismo tipo de producto puede encontrarse asociado a diferentes marcas, precios, descuentos y vendedores, esto incluyendo tanto la venta directa de la plataforma como ofertas realizadas por terceros.
+El crecimiento del comercio electrónico ha incrementado la cantidad de productos y vendedores disponibles en plataformas de marketplace, generando una mayor variedad de alternativas para los consumidores. En plataformas como Falabella Perú, un mismo tipo de producto puede encontrarse asociado a diferentes marcas, precios, descuentos y vendedores, incluyendo tanto la venta directa de la plataforma como ofertas realizadas por terceros.
 
-Esta variedad dificulta poder realizar comparaciones directas entre productos y vendedores, especialmente en categorías tecnológicas con alto valor como lo podrían ser laptops, celulares y televisores. Un producto puede presentar al mismo tiempo un precio normal y un precio de oferta, esto mientras que otros productos de características similares pueden ser comercializados por distintos vendedores a precios diferentes. Por ello, observar únicamente el precio de un producto nos permitiría identificar con claridad cómo se distribuyen los precios, qué magnitud tienen los descuentos o cómo varían estas características entre marcas y tipos de vendedores.
+Esta variedad dificulta realizar comparaciones directas entre productos y vendedores, especialmente en categorías tecnológicas con alta diversidad de modelos y precios, como laptops, celulares y televisores. Un producto puede presentar simultáneamente un precio regular y un precio en oferta, mientras que productos similares pueden ser comercializados por distintos vendedores a precios diferentes. Por ello, observar únicamente casos individuales no permite identificar con claridad cómo se distribuyen los precios, qué magnitud tienen los descuentos o cómo varían estas características entre marcas y tipos de vendedor.
 
-Bajo este contexto, nuestro proyecto propone utilizar técnicas de web scraping y análisis exploratorio de datos para poder construir un dataset a partir de productos publicados en la plataforma de _Falabella Perú_. Este análisis nos permitirá caracterizar los precios normales y de oferta, calcular los porcentajes de descuento y comparar estas variables según categoría, marca y vendedor. De esta manera, se busca obtener una descripción cuantitativa de la oferta tecnológica disponible en la plataforma y de las diferencias observables entre sus distintos tipos de vendedores.
+En este contexto, recopilar y estructurar información pública de productos disponibles en Falabella Perú permite analizar de manera sistemática las características de la oferta en estas categorías y describir el comportamiento de los precios y descuentos dentro de la plataforma.
 
 = Objetivos
 
 / Objetivo General:
-
-Analizar los precios, descuentos y niveles de competencia entre las marcas de laptops, celulares y televisores en Falabella Perú, comparando las ventas directas con las de los vendedores del marketplace.
+Analizar la estructura de precios, descuentos y características de comercialización de productos en las categorías de laptops, celulares y televisores en Falabella Perú a partir de información obtenida mediante web scraping. \
 
 / Objetivos Específicos:
-
-- _Evaluar la magnitud y distribución de los descuentos_:
-
-  Cuantificar la brecha porcentual entre el precio normal y el precio de oferta en las tres categorías tecnológicas, determinando qué líneas presentan rebajas más agresivas y cuáles mantienen precios de venta rígidos.
-
-- _Contrastar la competitividad tarifaria entre tipos de vendedores_:
-
-  Comparar las distribuciones de precios ofertados por _Falabella_ y sus filiales directas frente a los vendedores externos (sellers), identificando si los terceros constituyen una opción más económica o si replican las tarifas oficiales en los mismos modelos.
-
-- _Examinar el posicionamiento y la dispersión de costos por marca_:
-
-  Determinar las diferencias de precios promedio y rangos de dispersión entre las principales marcas de cada categoría (ej. Apple, Samsung, Lenovo, LG), clasificando su presencia en segmentos de gama de entrada, media y alta dentro de la plataforma.
+- Describir y comparar la distribución de precios y porcentajes de descuento entre las categorías de laptops, celulares y televisores.
+- Evaluar las diferencias de precios y descuentos según las principales marcas dentro de cada categoría de producto.
+- Comparar los precios y descuentos de los mismos modelos entre productos vendidos directamente por Falabella y aquellos ofrecidos por vendedores externos del marketplace.
 
 = Dataset Preliminar
 
-El resultado de la extracción es un archivo `.csv`  con *1680 filas y 7 columnas*, repartidas en siete secciones relacionadas con el servicio de retail (producto, marca, categoría, vendedor, precio regular, precio especial y hay descuento con cmr).
+El resultado de la extracción es un archivo `.csv` con *1680 filas y 6 columnas*, repartidas en seis atributos relacionados con el servicio de retail (producto, marca, categoría, vendedor, precio de lista y precio por internet).
 Cada fila representa un producto y cada columna es un atributo respecto a dicho producto:
 
 #align(center)[
@@ -159,9 +151,8 @@ Cada fila representa un producto y cada columna es un atributo respecto a dicho 
       [`brand`], [Marca del producto.],
       [`category`], [La categoría del producto es teléfono, televisor o laptop.],
       [`seller`], [Nombre del vendedor del producto.],
-      [`regular_price`], [Precio regular sin descuento del producto, en soles.],
-      [`special_price`], [Precio con descuento, en soles.],
-      [`has_cmr_discount`], [Si el producto cuenta con algún descuento extra por pagar con tarjeta cmr.],
+      [`list_price`], [Precio de lista sin descuento del producto, en soles.],
+      [`internet_price`], [Precio de venta por internet con descuento, en soles.],
     ),
     caption: [Atributos del dataset preliminar],
   )
@@ -172,43 +163,41 @@ Cada fila representa un producto y cada columna es un atributo respecto a dicho 
   #show table: set text(size: 7pt)
   #figure(
     table(
-      columns: 7,
+      columns: 6,
       [*`product`*],
       [*`brand`*],
       [*`category`*],
       [*`seller`*],
-      [*`regular_price`*],
-      [*`special_price`*],
-      [*`has_cmr_discount`*],
+      [*`list_price`*],
+      [*`internet_price`*],
 
-      [Celular Galaxy S26 512GB], [SAMSUNG], [phones], [FALABELLA], [5399.0], [4199.0], [0],
-      [MacBook Neo 512GB - Índigo], [APPLE], [laptops], [TECHNOLOGY SUPPLIER PE], [4539.0], [3699.0], [1],
-      [Televisor 32 QLED Full HD Smart TV 32S5K], [TCL], [tvs], [CITY TEC PERU], [899.0], [479.0], [0],
+      [CELULAR GALAXY S26 512GB], [SAMSUNG], [phones], [FALABELLA], [5399.0], [4199.0],
+      [MACBOOK NEO 512GB - ÍNDIGO], [APPLE], [laptops], [TECHNOLOGY SUPPLIER PE], [4539.0], [3699.0],
+      [TELEVISOR 32 QLED FULL HD SMART TV 32S5K], [TCL], [tvs], [CITY TEC PERU], [899.0], [479.0],
     ),
     caption: [Muestra de 3 registros del dataset preliminar],
   )
 ]
 
-Este es el dataset preliminar, tal como sale luego de realizar el scraping, por lo que, puede presentar errores de múltiples tipos (tipo de datos, ortográficos, etc) en ciertos registros que se corregirán luego al pasar por un proceso de limpieza para lograr su posterior análisis en la siguiente entrega. Del mismo modo, mediante el uso de pandas, hemos buscado garantizar que la cantidad de nulos (NA) por columna no superé el 10% y estos fueron los resultados obtenidos:
+Este es el dataset preliminar, tal como sale luego de realizar el scraping, por lo que puede presentar errores de múltiples tipos (tipo de datos, ortográficos, etc.) en ciertos registros que se corregirán al pasar por un proceso de limpieza para lograr su posterior análisis en la siguiente entrega. Del mismo modo, mediante el uso de pandas, hemos buscado garantizar que la cantidad de nulos (NA) por columna no supere el 10% y estos fueron los resultados obtenidos:
 
 #align(center)[
   #figure(
     table(
       columns: 3,
       [], [*Nulos*], [*% de nulos*],
-      [`regular_price`], [121], [7.2],
+      [`list_price`], [74], [4.4],
       [`product`], [0], [0.0],
       [`brand`], [0], [0.0],
       [`category`], [0], [0.0],
       [`seller`], [0], [0.0],
-      [`special_price`], [0], [0.0],
-      [`has_cmr_discount`], [0], [0.0],
+      [`internet_price`], [0], [0.0],
     ),
     caption: [Resumen de porcentaje de valores nulos (NA) por columna del dataset],
   )
 ]
 
-Tras observar los resultados, encontramos que la única columna con datos nulos corresponde a `regular_price` con 7.2% de datos NA, por lo que no supera el límite de 10% establecido. Entonces, el dataset preliminar con el que contamos, cumple en su totalidad con los requisitos establecidos.
+Tras observar los resultados, encontramos que la única columna con datos nulos corresponde a `list_price` con 4.4% de datos NA, por lo que no supera el límite de 10% establecido. Entonces, el dataset preliminar con el que contamos cumple en su totalidad con los requisitos establecidos.
 
 
 = Alcance
@@ -219,8 +208,8 @@ El proyecto se centrará en la recopilación y análisis de información públic
 
 - La recopilación de información de productos publicados en las tres categorías seleccionadas.
 
-- La identificación de atributos como nombre del producto, marca, categoría, vendedor, precio normal, precio de oferta y calificación, cuando estos se encuentren disponibles.
-- El cálculo del porcentaje de descuento a partir de los precios normal y de oferta. \
+- La identificación de atributos como nombre del producto, marca, categoría, vendedor, precio de lista y precio de oferta, cuando estos se encuentren disponibles.
+- El cálculo del porcentaje de descuento a partir de los precios de lista y de oferta. \
 
 - El análisis exploratorio de la distribución de precios y descuentos.
 
@@ -262,11 +251,11 @@ Específicamente, se obtuvo la información de las categorías:
 
 - Laptops: #link("https://www.falabella.com.pe/falabella-pe/category/cat40712/Laptops")[https://www.falabella.com.pe/falabella-pe/category/cat40712/Laptops]
 
-- Televisores: #link("https://www.falabella.com.pe/falabella-pe/category/cat6370551/Televisores-Smart-TV")[https://www.falabella.com.pe/falabella-pe/category/cat6370551/Televisores-Smart-TV]
+- Televisores: #link("https://www.falabella.com.pe/falabella-pe/category/cat210477/TV-Televisores")[https://www.falabella.com.pe/falabella-pe/category/cat210477/TV-Televisores]
 
 - Celulares: #link("https://www.falabella.com.pe/falabella-pe/category/cat760706/Celulares-y-Telefonos")[https://www.falabella.com.pe/falabella-pe/category/cat760706/Celulares-y-Telefonos]
 
-La selección de _Falabella Perú_ como fuente principal se justifica por ser una plataforma de comercio electrónico líder en el mercado peruano, lo que garantiza un alto nivel de representación e interés local para un análisis de datos. Al ser un sitio de acceso libre y público, permite la extracción ética y continua de datos sin barreras de autenticación. Asimismo, la estructura HTML de la plataforma presenta plantillas consistentes y paginación organizada, aspectos esenciales para asegurar la factibilidad técnica y la reproducibilidad del web scraping. Finalmente, la plataforma ofrece una amplia variedad y densidad de atributos organizados por producto (como precio normal, precio de oferta, tarjetas de descuento, vendedor o seller, marca y calificación), lo cual brinda el detalle necesario para construir un dataset sólido, diverso y superior a los registros requeridos para el análisis y cumplimiento de los objetivos.
+La selección de _Falabella Perú_ como fuente principal se justifica por ser una plataforma de comercio electrónico líder en el mercado peruano, lo que garantiza un alto nivel de representación e interés local para un análisis de datos. Al ser un sitio de acceso libre y público, permite la extracción ética y continua de datos sin barreras de autenticación. Asimismo, la estructura HTML de la plataforma presenta plantillas consistentes y paginación organizada, aspectos esenciales para asegurar la factibilidad técnica y la reproducibilidad del web scraping. Finalmente, la plataforma ofrece una amplia variedad y densidad de atributos organizados por producto (como precio de lista, precio de oferta por internet, vendedor o seller y marca), lo cual brinda el detalle necesario para construir un dataset sólido, diverso y superior a los registros requeridos para el análisis y cumplimiento de los objetivos.
 
 = Estrategia
 
@@ -276,17 +265,17 @@ Para la obtención de datos se utilizó Python y Scrapy, debido a su eficiencia,
   Se definieron las URLs estáticas de tres categorías principales de Falabella Perú (Celulares, Laptops y Televisores). Para lograr el volumen de datos requerido, se aplicó un método de paginación inyectando el parámetro `?page={}` en un bucle que _iteró hasta 20 páginas por categoría_.
 
 / Parseo y Extracción:
-  Al descargar el código fuente, la extracción se realizó mediante Selectores CSS, identificando los contenedores principales de las tarjetas de productos (`div.grid-pod`). Dentro de estas, se aislaron atributos específicos para cruzar los distintos niveles de precios (`data-normal-price`, `data-internet-price`, `data-cmr-price`).
+  Al descargar el código fuente, la extracción se realizó mediante Selectores CSS, identificando los contenedores principales de las tarjetas de productos (`div.grid-pod`). Dentro de estas, se aislaron atributos específicos para cruzar los distintos niveles de precios (`data-normal-price` y `data-internet-price` / `data-event-price`).
 
 / Transformación y limpieza:
-  Para asegurar la calidad de los datos, el script incluye funciones de limpieza durante el mismo proceso de extracción. Los textos extraídos (como el prefijo `Por ` en los vendedores) son depurados, los precios son convertidos directamente a valores numéricos (`float`), y los descuentos especiales (CMR) se transforman en variables categóricas binarias (1/0).
+  Para asegurar la calidad de los datos, el script incluye funciones de limpieza durante el mismo proceso de extracción. Los textos extraídos (como el prefijo `Por ` en los vendedores) son depurados y estandarizados en mayúsculas, y los precios son convertidos directamente a valores numéricos (`float`).
 
 / Almacenamiento Continuo:
-  Los datos estructurados fluyen hacia un archivo .csv mediante un proceso de escritura incremental, garantizando la integridad de la información en tiempo real.
+  Los datos estructurados fluyen hacia un archivo `.csv` mediante un proceso de escritura incremental, garantizando la integridad de la información en tiempo real.
 
 Por otro lado, dado que las plataformas e-commerce suelen implementar medidas contra la extracción automatizada, se desarrollaron medidas de contingencia.
 
-Inicialmente, se revisó el archivos `robots.txt` de Falabella Perú:
+Inicialmente, se revisó el archivo `robots.txt` de Falabella Perú:
 
 #figure(
   image("img/robots.png"),
@@ -330,5 +319,3 @@ El proyecto es viable en cuanto a recursos y herramientas ya que hacemos uso her
 En lo que respecta a tiempo, haber dividido las múltiples tareas relacionadas al proyecto, nos permitió avanzar en simultáneo y así, ir a la par con los tiempos. Una estrategia que fue usada para evitar el bloqueo de la IP del integrante encargado del Scraping fue utilizar proxys gratuitos, lo que llevó a que la tarea fuera un poco más tardada, pero aseguraba que pudiéramos completar el Scraping en una sola corrida del código, obteniendo al final una totalidad de 1680 registros, lo cual entra de la cantidad mínima de registros solicitados. Del mismo modo, no buscamos ser ambiciosos con la cantidad de datos a extraer ya que ello podría extender el tiempo que pueda tardar en realizarse el scraping por completo por lo que, escogimos extraer datos en una sola tanda para poder trabajar dentro de los plazos establecidos.
 
 Un punto extra que nos gustaría mencionar es la parte de viabilidad legal. Nuestro proyecto no extrae información sensible o prohibida por Falabella, sin embargo, igual hemos establecido `robots.txt = TRUE`, lo que prohíbe a nuestra spider el extraer algún dato prohibido por _Falabella_, aunque, no queramos extraer dicha información sensible, fue una medida extra para asegurar la integridad de los datos a extraer.
-
-

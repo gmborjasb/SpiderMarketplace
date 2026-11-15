@@ -1,0 +1,4 @@
+category,min_price,p33_cutoff,median_price,p66_cutoff,max_price,low_count,mid_count,high_count
+laptops,835.0,3199.0,3739.0,4699.0,27345.56,155,136,142
+phones,79.9,892.33,1399.0,2125.67,8999.0,146,145,146
+tvs,283.9,1489.0,1729.0,1999.0,9999.0,57,55,55

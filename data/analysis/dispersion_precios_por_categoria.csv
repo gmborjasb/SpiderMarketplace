@@ -1,0 +1,4 @@
+category,n,min_soles,q1_soles,median_soles,q3_soles,max_soles,iqr_soles,iqr_relativo_pct,mean_soles,std_soles
+laptops,433,835.0,2859.0,3739.0,5699.0,27345.56,2840.0,76.0,4562.68,3073.61
+phones,437,79.9,699.0,1399.0,2779.0,8999.0,2080.0,148.7,1945.51,1680.18
+tvs,167,283.9,1299.0,1729.0,2399.45,9999.0,1100.45,63.6,2219.57,1770.6

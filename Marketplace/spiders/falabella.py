@@ -120,52 +120,46 @@ class FalabellaSpider(scrapy.Spider):
             marketplace_item.product = product
             marketplace_item.seller = seller
 
-            regular_price, special_price, has_cmr = self._extract_prices(item)
-            marketplace_item.regular_price = regular_price
-            marketplace_item.special_price = special_price
-            marketplace_item.has_cmr_discount = has_cmr
+            list_price, internet_price = self._extract_prices(item)
+            marketplace_item.list_price = list_price
+            marketplace_item.internet_price = internet_price
 
             yield marketplace_item
 
     def _extract_prices(self, card):
-        """Extrae el precio regular, precio especial y evalúa la presencia de CMR.
+        """Extrae el precio de lista y el precio de venta por internet.
 
-        Falabella utiliza cuatro posibles atributos de datos en los elementos ``<li>``
+        Falabella utiliza los siguientes atributos de datos en los elementos ``<li>``
         dentro de ``ol.pod-prices``:
 
         * ``data-normal-price``   -- precio de lista / referencial (tachado)
         * ``data-internet-price`` -- precio con descuento online (texto gris/negro)
         * ``data-event-price``    -- precio promocional / evento (texto gris/negro)
-        * ``data-cmr-price``      -- precio exclusivo con tarjeta CMR Falabella (texto rojo)
 
-        Devuelve valores float sin comas separadoras de miles para los precios,
-        y 1 o 0 para has_cmr_discount dependiendo si data-cmr-price está presente.
+        Devuelve una tupla ``(list_price, internet_price)`` con los textos crudos
+        extraídos de la tarjeta (o ``None`` cuando el atributo no está presente).
         """
         prices_ol = card.css("ol.pod-prices")
 
         if not prices_ol:
-            return None, None, 0
+            return None, None
 
-        regular_price = prices_ol.css(
+        list_price = prices_ol.css(
             "li[data-normal-price]::attr(data-normal-price)"
         ).get()
 
-        special_price = prices_ol.css(
+        internet_price = prices_ol.css(
             "li[data-internet-price]::attr(data-internet-price)"
         ).get()
-        if special_price is None:
-            special_price = prices_ol.css(
+
+        if internet_price is None:
+            internet_price = prices_ol.css(
                 "li[data-event-price]::attr(data-event-price)"
             ).get()
 
-        cmr_price_raw = prices_ol.css("li[data-cmr-price]::attr(data-cmr-price)").get()
-
-        has_cmr_discount = 1 if cmr_price_raw else 0
-
         return (
-            regular_price,
-            special_price,
-            has_cmr_discount,
+            list_price,
+            internet_price,
         )
 
     # Cleaning methods
@@ -176,13 +170,13 @@ class FalabellaSpider(scrapy.Spider):
 
         # Busca todos los patrones de precio (ej. "999", "3,549", "10,999")
         # Esto separa correctamente rangos fusionados como "3,549,3,819" -> ["3,549", "3,819"]
-        matches = re.findall(r'\d{1,3}(?:,\d{3})*(?:\.\d+)?', value)
-        
+        matches = re.findall(r"\d{1,3}(?:,\d{3})*(?:\.\d+)?", value)
+
         if matches:
             # Tomamos el primer precio del rango (el "Desde") y le quitamos las comas
             first_price = matches[0].replace(",", "")
             return first_price
-            
+
         return None
 
     def _clean_seller(self, value):
@@ -201,6 +195,15 @@ class FalabellaSpider(scrapy.Spider):
 
     def _clean_product(self, value):
         """Convierte el nombre del producto a mayúsculas para mantener consistencia."""
+        if not value:
+            return None
+
+        value = value.upper()
+
+        return value
+
+    def _clean_brand(self, value):
+        """Convierte el nombre de la marca del producto a mayúsculas para mantener consistencia."""
         if not value:
             return None
 
