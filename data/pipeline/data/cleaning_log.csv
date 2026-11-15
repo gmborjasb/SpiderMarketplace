@@ -1,0 +1,6 @@
+paso,filas_antes,filas_despues,filas_afectadas
+duplicados exactos,1680,1424,256
+duplicados tras normalizar texto,1424,1423,1
+accesorios y productos que no son el equipo,1423,1037,386
+list_price vacio imputado con internet_price,1037,1037,36
+precios atipicos marcados (no eliminados),1037,1037,53

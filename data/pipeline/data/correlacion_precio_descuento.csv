@@ -1,0 +1,4 @@
+category,n,pearson_r,pearson_pvalue,spearman_rho,spearman_pvalue
+laptops,433,-0.129,0.007402,-0.157,0.00108
+phones,437,-0.274,0.0,-0.258,0.0
+tvs,167,-0.176,0.023116,-0.185,0.01684
