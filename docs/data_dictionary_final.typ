@@ -3,7 +3,7 @@
   flipped: true,
   margin: (x: 1.2cm, top: 1.35cm, bottom: 1.1cm),
   header: align(left)[
-    #text(size: 9.5pt)[_DS3021 Análisis Computacional de Datos · Semestre 2026-1_]
+    #text(size: 9.5pt)[_DS3021 Análisis Computacional de Datos · Semestre 2026-2_]
   ],
 )
 
