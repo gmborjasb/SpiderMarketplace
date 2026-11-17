@@ -3,7 +3,7 @@
   margin: 1.8cm,
   header: align(left)[
     _DS3021 Análisis Computacional de Datos_ \
-    _Semestre 2026-1_
+    _Semestre 2026-2_
   ],
 )
 

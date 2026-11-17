@@ -149,7 +149,9 @@
 #v(1.5cm)
 #align(center)[
   *ANÁLISIS COMPUTACIONAL DE DATOS*
-  #v(1cm)
+
+  Semestre 2026-2
+  #v(0.8cm)
   LIMA - PERÚ
 
   2026
